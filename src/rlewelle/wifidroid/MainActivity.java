@@ -16,6 +16,9 @@ import android.widget.BaseAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 public class MainActivity extends ListActivity
@@ -55,10 +58,27 @@ public class MainActivity extends ListActivity
             }
 
             public void hydrate(ScanResult scan) {
+                // Assuming we're talking about a 2.4GHz WiFi source, channels are as follows:
+                // Channel 1 - 2412
+                // Channel 2 - 2417
+                // Channel 3 - 2422
+                // ...
+                // Channel 13 - 2472
+                // and then channel 14 messes everything up at
+                // Channel 14 - 2484
+
+                // There's also 5GHz channels, but I'm not worrying about those right now
+                String channelStr = String.format("(%d Hz)", scan.frequency);
+                if (scan.frequency >= 2412 && scan.frequency <= 2472)
+                    channelStr = Integer.toString((scan.frequency - 2407) / 5);
+
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(scan.timestamp);
+
                 ssid.setText(scan.SSID);
-                seen.setText(Long.toString(scan.timestamp));
+                seen.setText(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(calendar.getTime()));
                 strength.setText(Integer.toString(scan.level));
-                channel.setText(Integer.toString(scan.frequency));
+                channel.setText(channelStr);
             }
         }
 

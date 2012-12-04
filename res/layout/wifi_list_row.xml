@@ -31,7 +31,8 @@
         android:layout_width="wrap_content"
         android:layout_marginLeft="10dp"
         android:textSize="30dp"
-        android:textAlignment="center" />
+        android:textAlignment="center"
+        android:gravity="center" />
 
     <TextView
         android:id="@+id/network_strength"
@@ -39,6 +40,7 @@
         android:layout_width="wrap_content"
         android:layout_marginLeft="20dp"
         android:textSize="30dp"
-        android:textAlignment="center" />
+        android:textAlignment="center"
+        android:gravity="center" />
 
 </LinearLayout>

@@ -1,7 +1,10 @@
 package rlewelle.wifidroid;
 
 import android.app.ListActivity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -20,7 +23,18 @@ public class WifiListActivity extends ListActivity
         super.onCreate(savedInstanceState);
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 
-        refresh();
+        registerReceiver(
+            new BroadcastReceiver() {
+                public void onReceive(Context context, Intent intent) {
+                    Toast.makeText(WifiListActivity.this, "Got new data", Toast.LENGTH_SHORT).show();
+                    displayData();
+                }
+            },
+
+            new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
+        );
+
+        displayData();
     }
 
     @Override
@@ -33,7 +47,12 @@ public class WifiListActivity extends ListActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.wifi_list_refresh:
-                refresh();
+                if (!checkWifiEnabled()) return false;
+                if (!wifi.startScan()) {
+                    // Not really sure what would cause this, or what to do about it
+                    Log.d("WifiListActivity.wifi_list_refresh", "startScan() returned false!");
+                }
+
                 break;
 
             default:
@@ -43,12 +62,22 @@ public class WifiListActivity extends ListActivity
         return true;
     }
 
-    // Grab the latest data from
-    public void refresh() {
+    /**
+     * Make sure that wifi is enabled, and if not, tell the user.
+     * @return True if wifi is enabled.
+     */
+    public boolean checkWifiEnabled() {
         if (!wifi.isWifiEnabled()) {
             Toast.makeText(this, "Wifi is disabled!", Toast.LENGTH_LONG).show();
-            return;
+            return false;
         }
+
+        return true;
+    }
+
+    // Grab and display the latest data from the WifiManager
+    public void displayData() {
+        if (!checkWifiEnabled()) return;
 
         List<ScanResult> scanResults = wifi.getScanResults();
         if (scanResults == null) {
@@ -56,8 +85,21 @@ public class WifiListActivity extends ListActivity
             return;
         }
 
-        NetworkListAdapter scanAdapter = new NetworkListAdapter(scanResults);
-        setListAdapter(scanAdapter);
+        Collections.sort(scanResults, new Comparator<ScanResult>() {
+            @Override
+            public int compare(ScanResult a, ScanResult b) {
+                // Sort by signal strength (high->low)
+                //return WifiManager.compareSignalLevel(b.level, a.level);
+
+                // Sort by channel (low->high)
+                return ((Integer)a.frequency).compareTo(b.frequency);
+
+                // Sort by name (low->high)
+                //return a.SSID.compareTo(b.SSID);
+            }
+        });
+
+        setListAdapter(new NetworkListAdapter(scanResults));
     }
 
     public class NetworkListAdapter extends ArrayAdapter<ScanResult> {
@@ -66,14 +108,12 @@ public class WifiListActivity extends ListActivity
             TextView seen;
             TextView channel;
             ProgressBar strength;
-            //TextView strengthTxt;
 
             public NetworkListRowHolder(View view) {
                 ssid = (TextView)view.findViewById(R.id.network_ssid);
                 seen = (TextView)view.findViewById(R.id.network_lastseen);
                 channel = (TextView)view.findViewById(R.id.network_channel);
                 strength = (ProgressBar)view.findViewById(R.id.network_strength);
-                //strengthTxt = (TextView)view.findViewById(R.id.network_strength_txt);
             }
 
             public void hydrate(ScanResult scan) {
@@ -90,17 +130,14 @@ public class WifiListActivity extends ListActivity
 
                 // There's also 5GHz channels, but I'm not worrying about those right now
                 String channelStr = String.format("(%d Hz)", scan.frequency);
-                if (scan.frequency >= 2412 && scan.frequency <= 2472)
+                if (scan.frequency >= 2412 && scan.frequency <= 2472) // Magic numbers, AHOY
                     channelStr = Integer.toString((scan.frequency - 2407) / 5);
                 channel.setText(channelStr);
 
-                // ScanResult: time is given in microseconds
-                // Calendar:   expects time in milliseconds
-                //Calendar calendar = new GregorianCalendar();
-                //calendar.setTimeInMillis(scan.timestamp / 1000);
-                //seen.setText(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(calendar.getTime()));
-                seen.setText(Long.toString(scan.timestamp));
-                //seen.setText("Last seen n seconds ago");
+                // ScanResult.timestamp is not the last time we saw this AP - rather, it is
+                // the synchronized time function of that access point; each network maintains
+                // this number such that it is consistant across devices on that network.
+                seen.setText("Last seen n seconds ago");
 
                 // The signal strength is measured in milli-watt decibels (relative to 1 milli-watt)
                 // Generally, these values are negative and somewhere in the [-100, 0] range, with
@@ -111,7 +148,6 @@ public class WifiListActivity extends ListActivity
                 int maxLevel = 32;
                 strength.setMax(maxLevel);
                 strength.setProgress(WifiManager.calculateSignalLevel(scan.level, maxLevel));
-                //strengthTxt.setText(Integer.toString(scan.level));
             }
         }
 

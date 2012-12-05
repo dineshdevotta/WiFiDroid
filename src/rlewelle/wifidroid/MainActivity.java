@@ -11,15 +11,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
-import android.widget.ListAdapter;
-import android.widget.TextView;
+import android.widget.*;
 
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.util.*;
 
 public class MainActivity extends ListActivity
 {
@@ -47,17 +42,21 @@ public class MainActivity extends ListActivity
         public class NetworkListRowHolder {
             TextView ssid;
             TextView seen;
-            TextView strength;
             TextView channel;
+            ProgressBar strength;
+            //TextView strengthTxt;
 
             public NetworkListRowHolder(View view) {
                 ssid = (TextView)view.findViewById(R.id.network_ssid);
                 seen = (TextView)view.findViewById(R.id.network_lastseen);
-                strength = (TextView)view.findViewById(R.id.network_strength);
                 channel = (TextView)view.findViewById(R.id.network_channel);
+                strength = (ProgressBar)view.findViewById(R.id.network_strength);
+                //strengthTxt = (TextView)view.findViewById(R.id.network_strength_txt);
             }
 
             public void hydrate(ScanResult scan) {
+                ssid.setText(scan.SSID);
+
                 // Assuming we're talking about a 2.4GHz WiFi source, channels are as follows:
                 // Channel 1 - 2412
                 // Channel 2 - 2417
@@ -71,14 +70,26 @@ public class MainActivity extends ListActivity
                 String channelStr = String.format("(%d Hz)", scan.frequency);
                 if (scan.frequency >= 2412 && scan.frequency <= 2472)
                     channelStr = Integer.toString((scan.frequency - 2407) / 5);
-
-                Calendar calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(scan.timestamp);
-
-                ssid.setText(scan.SSID);
-                seen.setText(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(calendar.getTime()));
-                strength.setText(Integer.toString(scan.level));
                 channel.setText(channelStr);
+
+                // ScanResult: time is given in microseconds
+                // Calendar:   expects time in milliseconds
+                //Calendar calendar = new GregorianCalendar();
+                //calendar.setTimeInMillis(scan.timestamp / 1000);
+                //seen.setText(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(calendar.getTime()));
+                //seen.setText(Long.toString(scan.timestamp));
+                seen.setText("Last seen n seconds ago");
+
+                // The signal strength is measured in milli-watt decibels (relative to 1 milli-watt)
+                // Generally, these values are negative and somewhere in the [-100, 0] range, with
+                // values on the lower end representing bad signals and values near zero being good
+                // signals.
+                // Scan.level: [-100, -30]
+                //   + 100     [0,     70]
+                int maxLevel = 70;
+                strength.setMax(maxLevel);
+                strength.setProgress(Math.min(Math.max(0, 100 + scan.level), maxLevel) );
+                //strengthTxt.setText(Integer.toString(scan.level));
             }
         }
 

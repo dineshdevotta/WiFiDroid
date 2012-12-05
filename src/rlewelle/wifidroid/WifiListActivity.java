@@ -1,36 +1,58 @@
 package rlewelle.wifidroid;
 
-import android.app.Activity;
 import android.app.ListActivity;
 import android.content.Context;
-import android.database.DataSetObserver;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.*;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class MainActivity extends ListActivity
+public class WifiListActivity extends ListActivity
 {
     WifiManager wifi;
 
-    /** Called when the activity is first created. */
     @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+
+        refresh();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        new MenuInflater(this).inflate(R.menu.main, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.wifi_list_refresh:
+                refresh();
+                break;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+
+        return true;
+    }
+
+    // Grab the latest data from
+    public void refresh() {
+        if (!wifi.isWifiEnabled()) {
+            Toast.makeText(this, "Wifi is disabled!", Toast.LENGTH_LONG).show();
+            return;
+        }
 
         List<ScanResult> scanResults = wifi.getScanResults();
         if (scanResults == null) {
-            Log.d("MainActivity.onCreate", "scanResults is NULL");
+            Log.d("WifiListActivity.onCreate", "scanResults is NULL");
             return;
         }
 
@@ -77,8 +99,8 @@ public class MainActivity extends ListActivity
                 //Calendar calendar = new GregorianCalendar();
                 //calendar.setTimeInMillis(scan.timestamp / 1000);
                 //seen.setText(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(calendar.getTime()));
-                //seen.setText(Long.toString(scan.timestamp));
-                seen.setText("Last seen n seconds ago");
+                seen.setText(Long.toString(scan.timestamp));
+                //seen.setText("Last seen n seconds ago");
 
                 // The signal strength is measured in milli-watt decibels (relative to 1 milli-watt)
                 // Generally, these values are negative and somewhere in the [-100, 0] range, with
@@ -86,15 +108,15 @@ public class MainActivity extends ListActivity
                 // signals.
                 // Scan.level: [-100, -30]
                 //   + 100     [0,     70]
-                int maxLevel = 70;
+                int maxLevel = 32;
                 strength.setMax(maxLevel);
-                strength.setProgress(Math.min(Math.max(0, 100 + scan.level), maxLevel) );
+                strength.setProgress(WifiManager.calculateSignalLevel(scan.level, maxLevel));
                 //strengthTxt.setText(Integer.toString(scan.level));
             }
         }
 
         public NetworkListAdapter(List<ScanResult> scanResults) {
-            super(MainActivity.this, R.layout.wifi_list_row, R.id.network_ssid, scanResults);
+            super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid, scanResults);
         }
 
         @Override

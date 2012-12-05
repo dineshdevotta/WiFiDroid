@@ -129,9 +129,11 @@ public class WifiListActivity extends ListActivity
                 // Channel 14 - 2484
 
                 // There's also 5GHz channels, but I'm not worrying about those right now
-                String channelStr = String.format("(%d Hz)", scan.frequency);
-                if (scan.frequency >= 2412 && scan.frequency <= 2472) // Magic numbers, AHOY
-                    channelStr = Integer.toString((scan.frequency - 2407) / 5);
+                int channelNumber = WifiUtilities.convertFrequencyToChannel(scan.frequency);
+                String channelStr = channelNumber == -1
+                                  ? String.format("(%d Hz)", scan.frequency)
+                                  : Integer.toString(channelNumber);
+
                 channel.setText(channelStr);
 
                 // ScanResult.timestamp is not the last time we saw this AP - rather, it is

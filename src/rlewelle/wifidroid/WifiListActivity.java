@@ -16,20 +16,18 @@ import rlewelle.wifidroid.utils.WifiUtilities;
 
 import java.util.*;
 
-public class WifiListActivity extends ListActivity {
-    DataService service;
+public class WifiListActivity extends ListActivity implements DataService.IDataServicable{
+    DataService.DataServiceLink serviceLink = new DataService.DataServiceLink(this);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        registerReceiver(scanResultsReceived, new IntentFilter(DataService.SCAN_RESULTS_AVAILABLE_ACTION));
-        bindService(new Intent(this, DataService.class), serviceConnection, Context.BIND_AUTO_CREATE);
+        serviceLink.onCreate();
     }
 
     @Override
     protected void onDestroy() {
-        unregisterReceiver(scanResultsReceived);
-        unbindService(serviceConnection);
+        serviceLink.onDestroy();
         super.onDestroy();
     }
 
@@ -37,10 +35,28 @@ public class WifiListActivity extends ListActivity {
     protected void onResume() {
         super.onResume();
 
-        if (service == null)
+        // We may not have received the latest updates (via intent) while paused,
+        // so just ask the DataService for the most recent updates
+        if (serviceLink.getService() == null)
             return;
 
         displayLatestResults();
+    }
+
+    @Override
+    public void onServiceConnected() {}
+
+    @Override
+    public void onServiceDisconnected() {}
+
+    @Override
+    public void onScanResultsReceived() {
+        displayLatestResults();
+    }
+
+    @Override
+    public Context getContext() {
+        return this;
     }
 
     @Override
@@ -53,7 +69,7 @@ public class WifiListActivity extends ListActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.wifi_list_refresh:
-                service.startScan();
+                serviceLink.getService().startScan();
                 break;
 
             default:
@@ -73,12 +89,12 @@ public class WifiListActivity extends ListActivity {
     }
 
     private void displayLatestResults() {
-        if (service == null)
+        if (serviceLink.getService() == null)
             return;
 
         // Retrieve and flatten result set into a list for use with the adapter
-        Set<AccessPoint> latestResults      = service.getLatestResults();
-        Set<AccessPoint> aggregatedResults  = service.getAggregatedResults();
+        Set<AccessPoint> latestResults      = serviceLink.getService().getLatestResults();
+        Set<AccessPoint> aggregatedResults  = serviceLink.getService().getAggregatedResults();
         if (latestResults == null || aggregatedResults == null) {
             Log.d("rlewelle.WifiListActivity.displayResults", "go NULL latest/aggregated result sets!");
             return;
@@ -102,27 +118,6 @@ public class WifiListActivity extends ListActivity {
 
         setListAdapter(new NetworkListAdapter(latestResults, aggregatedResults));
     }
-
-    private BroadcastReceiver scanResultsReceived = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            displayLatestResults();
-        }
-    };
-
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder binder) {
-            service = ((DataService.DataServiceBinder) binder).getService();
-            displayLatestResults();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-            Toast.makeText(WifiListActivity.this, "The Wifi DataService was unexpectedly shutdown!", Toast.LENGTH_LONG);
-            service = null;
-        }
-    };
 
     public class NetworkListAdapter extends ArrayAdapter<AccessPoint> {
         public class NetworkListRowHolder {
@@ -211,4 +206,5 @@ public class WifiListActivity extends ListActivity {
             return convertView;
         }
     }
+
 }

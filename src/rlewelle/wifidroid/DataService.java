@@ -3,14 +3,12 @@ package rlewelle.wifidroid;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.*;
 import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 import rlewelle.wifidroid.data.AccessPoint;
 import rlewelle.wifidroid.utils.WifiUtilities;
 
@@ -134,5 +132,56 @@ public class DataService extends Service {
 
     public class DataServiceBinder extends Binder {
         public DataService getService() { return DataService.this; }
+    }
+
+    public interface IDataServicable {
+        public void onServiceConnected();
+        public void onServiceDisconnected();
+        public void onScanResultsReceived();
+        public Context getContext();
+    }
+
+    public static class DataServiceLink {
+        private DataService service;
+        private IDataServicable client;
+
+        public DataServiceLink(IDataServicable client) {
+            this.client = client;
+        }
+
+        public void onCreate() {
+            client.getContext().registerReceiver(resultsReceiver, new IntentFilter(DataService.SCAN_RESULTS_AVAILABLE_ACTION));
+            client.getContext().bindService(new Intent(client.getContext(), DataService.class), serviceConnection, Context.BIND_AUTO_CREATE);
+        }
+
+        public void onDestroy() {
+            client.getContext().unregisterReceiver(resultsReceiver);
+            client.getContext().unbindService(serviceConnection);
+        }
+
+        private ServiceConnection serviceConnection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName componentName, IBinder binder) {
+                service = ((DataService.DataServiceBinder) binder).getService();
+                client.onServiceConnected();
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName componentName) {
+                Toast.makeText(client.getContext(), "The Wifi DataService was unexpectedly shutdown!", Toast.LENGTH_LONG);
+
+                service = null;
+                client.onServiceDisconnected();
+            }
+        };
+
+        private BroadcastReceiver resultsReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                client.onScanResultsReceived();
+            }
+        };
+
+        public DataService getService() { return service; }
     }
 }

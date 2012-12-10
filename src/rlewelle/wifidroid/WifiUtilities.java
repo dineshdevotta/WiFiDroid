@@ -1,5 +1,11 @@
 package rlewelle.wifidroid;
 
+import android.net.wifi.ScanResult;
+import rlewelle.wifidroid.data.AccessPoint;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class WifiUtilities {
     // All in MHz
     private static final int MIN_2GHZ_FREQ = 2412;
@@ -16,5 +22,18 @@ public class WifiUtilities {
             return (frequency - MIN_2GHZ_FREQ) / CHANNEL_BANDWIDTH + 1;
 
         return -1;
+    }
+
+    // mumble mumble Java mumble mumble functional mumble mumble map
+    public static List<AccessPoint> accessPointsFromScanResults(List<ScanResult> scanResults) {
+        if (scanResults == null)
+            return null;
+
+        List<AccessPoint> data = new ArrayList<AccessPoint>(scanResults.size());
+
+        for (ScanResult result : scanResults)
+            data.add(AccessPoint.getInstance(result));
+
+        return data;
     }
 }

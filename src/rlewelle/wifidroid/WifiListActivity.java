@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.*;
 import android.widget.*;
+import rlewelle.wifidroid.data.AccessPoint;
 
 import java.util.*;
 
@@ -79,15 +80,17 @@ public class WifiListActivity extends ListActivity
     public void displayData() {
         if (!checkWifiEnabled()) return;
 
-        List<ScanResult> scanResults = wifi.getScanResults();
+        List<AccessPoint> scanResults = WifiUtilities.accessPointsFromScanResults(wifi.getScanResults());
         if (scanResults == null) {
             Log.d("WifiListActivity.onCreate", "scanResults is NULL");
             return;
         }
 
-        Collections.sort(scanResults, new Comparator<ScanResult>() {
+
+
+        Collections.sort(scanResults, new Comparator<AccessPoint>() {
             @Override
-            public int compare(ScanResult a, ScanResult b) {
+            public int compare(AccessPoint a, AccessPoint b) {
                 // Sort by signal strength (high->low)
                 //return WifiManager.compareSignalLevel(b.level, a.level);
 
@@ -102,7 +105,7 @@ public class WifiListActivity extends ListActivity
         setListAdapter(new NetworkListAdapter(scanResults));
     }
 
-    public class NetworkListAdapter extends ArrayAdapter<ScanResult> {
+    public class NetworkListAdapter extends ArrayAdapter<AccessPoint> {
         public class NetworkListRowHolder {
             TextView ssid;
             TextView seen;
@@ -116,7 +119,7 @@ public class WifiListActivity extends ListActivity
                 strength = (ProgressBar)view.findViewById(R.id.network_strength);
             }
 
-            public void hydrate(ScanResult scan) {
+            public void hydrate(AccessPoint scan) {
                 ssid.setText(scan.SSID);
 
                 // Assuming we're talking about a 2.4GHz WiFi source, channels are as follows:
@@ -153,7 +156,7 @@ public class WifiListActivity extends ListActivity
             }
         }
 
-        public NetworkListAdapter(List<ScanResult> scanResults) {
+        public NetworkListAdapter(List<AccessPoint> scanResults) {
             super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid, scanResults);
         }
 

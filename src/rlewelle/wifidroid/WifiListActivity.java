@@ -1,6 +1,7 @@
 package rlewelle.wifidroid;
 
 import android.app.ListActivity;
+import android.app.Notification;
 import android.content.*;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -65,13 +66,14 @@ public class WifiListActivity extends ListActivity {
         if (service == null)
             return;
 
-        List<AccessPoint> scanResults = service.getLatestResults();
-
-        if (scanResults == null) {
+        // Retrieve and flatten result set into a list for use with the adapter
+        Set<AccessPoint> accessPointSet = service.getAggregatedResults();
+        if (accessPointSet == null) {
             Log.d("rlewelle.WifiListActivity.displayResults", "scanResults is NULL");
             return;
         }
 
+        List<AccessPoint> scanResults = new ArrayList<AccessPoint>(accessPointSet);
         Collections.sort(scanResults, new Comparator<AccessPoint>() {
             @Override
             public int compare(AccessPoint a, AccessPoint b) {
@@ -92,7 +94,6 @@ public class WifiListActivity extends ListActivity {
     private BroadcastReceiver scanResultsReceived = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Toast.makeText(WifiListActivity.this, "Got new data", Toast.LENGTH_SHORT).show();
             displayLatestResults();
         }
     };

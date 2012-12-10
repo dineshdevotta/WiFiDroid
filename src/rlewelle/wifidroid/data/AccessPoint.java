@@ -26,4 +26,17 @@ public class AccessPoint {
 
         return ap;
     }
+
+    @Override
+    public int hashCode() {
+        return BSSID.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) return false;
+        if (o == this) return true;
+        if (!(o instanceof AccessPoint)) return false;
+        return ((AccessPoint)o).BSSID.equals(BSSID);
+    }
 }

@@ -14,7 +14,7 @@ import android.util.Log;
 import rlewelle.wifidroid.data.AccessPoint;
 import rlewelle.wifidroid.utils.WifiUtilities;
 
-import java.util.List;
+import java.util.*;
 
 public class DataService extends Service {
     public static final String SCAN_RESULTS_AVAILABLE_ACTION = "rlewelle.wifidroid.DataService.SCAN_RESULTS";
@@ -24,7 +24,8 @@ public class DataService extends Service {
     private WifiManager wifiManager;
     private NotificationManager notificationManager;
 
-    private List<AccessPoint> latestResults;
+    private Set<AccessPoint> latestResults;
+    private Set<AccessPoint> aggregatedResults;
 
     @Override
     public void onCreate() {
@@ -47,8 +48,6 @@ public class DataService extends Service {
             .setContentText("Herp")
             .setSmallIcon(R.drawable.recording)
             .build();
-
-        //startForeground();
 
         startForeground(1, notification);
     }
@@ -77,9 +76,15 @@ public class DataService extends Service {
     private BroadcastReceiver scanResultReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.d("DataService.scanner", "DataService receives new data");
-            latestResults = WifiUtilities.accessPointsFromScanResults(wifiManager.getScanResults());
-            sendBroadcast(new Intent(SCAN_RESULTS_AVAILABLE_ACTION));
+        Log.d("DataService.scanner", "DataService receives new data");
+        latestResults = new HashSet<AccessPoint>(WifiUtilities.accessPointsFromScanResults(wifiManager.getScanResults()));
+
+        if (aggregatedResults == null)
+            aggregatedResults = new HashSet<AccessPoint>();
+
+        aggregatedResults.addAll(latestResults);
+
+        sendBroadcast(new Intent(SCAN_RESULTS_AVAILABLE_ACTION));
         }
     };
 
@@ -87,8 +92,16 @@ public class DataService extends Service {
      * Get the latest scan results made available by the OS
      * @return the results if recorded, null otherwise
      */
-    public List<AccessPoint> getLatestResults() {
+    public Set<AccessPoint> getLatestResults() {
         return latestResults;
+    }
+
+    public Set<AccessPoint> getAggregatedResults() {
+        return aggregatedResults;
+    }
+
+    public void clearAggregatedResults() {
+        aggregatedResults.clear();
     }
 
     public boolean isWifiEnabled() {

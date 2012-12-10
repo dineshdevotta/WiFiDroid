@@ -120,6 +120,30 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
     }
 
     public class NetworkListAdapter extends ArrayAdapter<AccessPoint> {
+        private Set<AccessPoint> inactiveAccessPoints;
+
+        public NetworkListAdapter(Set<AccessPoint> latestResult, Set<AccessPoint> aggregatedResult) {
+            super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid, new ArrayList<AccessPoint>(aggregatedResult));
+            inactiveAccessPoints = new HashSet<AccessPoint>(aggregatedResult);
+            inactiveAccessPoints.removeAll(latestResult);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            NetworkListRowHolder holder;
+
+            if (convertView == null || convertView.getTag() == null) {
+                convertView = getLayoutInflater().inflate(R.layout.wifi_list_row, null);
+                holder = new NetworkListRowHolder(convertView);
+                convertView.setTag(holder);
+            } else {
+                holder = (NetworkListRowHolder)convertView.getTag();
+            }
+
+            holder.hydrate(getItem(position));
+            return convertView;
+        }
+
         public class NetworkListRowHolder {
             TextView ssid;
             TextView seen;
@@ -181,30 +205,5 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 strength.setProgress(WifiManager.calculateSignalLevel(scan.level, maxLevel));
             }
         }
-
-        private Set<AccessPoint> inactiveAccessPoints;
-
-        public NetworkListAdapter(Set<AccessPoint> latestResult, Set<AccessPoint> aggregatedResult) {
-            super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid, new ArrayList<AccessPoint>(aggregatedResult));
-            inactiveAccessPoints = new HashSet<AccessPoint>(aggregatedResult);
-            inactiveAccessPoints.removeAll(latestResult);
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            NetworkListRowHolder holder;
-
-            if (convertView == null || convertView.getTag() == null) {
-                convertView = getLayoutInflater().inflate(R.layout.wifi_list_row, null);
-                holder = new NetworkListRowHolder(convertView);
-                convertView.setTag(holder);
-            } else {
-                holder = (NetworkListRowHolder)convertView.getTag();
-            }
-
-            holder.hydrate(getItem(position));
-            return convertView;
-        }
     }
-
 }

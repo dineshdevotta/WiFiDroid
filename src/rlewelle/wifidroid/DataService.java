@@ -1,5 +1,7 @@
 package rlewelle.wifidroid;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,7 +11,6 @@ import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
 import rlewelle.wifidroid.data.AccessPoint;
 import rlewelle.wifidroid.utils.WifiUtilities;
 
@@ -20,7 +21,9 @@ public class DataService extends Service {
 
     private final IBinder binder = new DataServiceBinder();
 
-    private WifiManager wifi;
+    private WifiManager wifiManager;
+    private NotificationManager notificationManager;
+
     private List<AccessPoint> latestResults;
 
     @Override
@@ -28,14 +31,26 @@ public class DataService extends Service {
         super.onCreate();
         Log.d("rlewelle.DataService.onCreate", "derp");
 
-        // Grab instance of the wifi manager
-        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        // Grab instance of the wifiManager manager
+        wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         // Register receiver for when scan results are available
         registerReceiver(scanResultReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
 
         //
-        wifi.startScan();
+        wifiManager.startScan();
+
+        // Throw an icon in the notification bar so the user knows we're running)
+        Notification notification = new Notification.Builder(this)
+            .setContentTitle("Derp")
+            .setContentText("Herp")
+            .setSmallIcon(R.drawable.recording)
+            .build();
+
+        //startForeground();
+
+        startForeground(1, notification);
     }
 
     @Override
@@ -63,7 +78,7 @@ public class DataService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d("DataService.scanner", "DataService receives new data");
-            latestResults = WifiUtilities.accessPointsFromScanResults(wifi.getScanResults());
+            latestResults = WifiUtilities.accessPointsFromScanResults(wifiManager.getScanResults());
             sendBroadcast(new Intent(SCAN_RESULTS_AVAILABLE_ACTION));
         }
     };
@@ -77,14 +92,14 @@ public class DataService extends Service {
     }
 
     public boolean isWifiEnabled() {
-        return wifi.isWifiEnabled();
+        return wifiManager.isWifiEnabled();
     }
 
     public boolean startScan() {
         if (!isWifiEnabled())
             return false;
 
-        return wifi.startScan();
+        return wifiManager.startScan();
     }
 
     public class DataServiceBinder extends Binder {

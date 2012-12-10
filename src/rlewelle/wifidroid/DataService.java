@@ -93,6 +93,18 @@ public class DataService extends Service {
         }
     };
 
+    public AccessPoint getAccessPointStatus(String BSSID) {
+        if (aggregatedResults == null) return null;
+
+        for (AccessPoint ap : aggregatedResults) {
+            if (ap.BSSID.equals(BSSID)) {
+                return ap;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Get the latest scan results made available by the OS
      * @return the results if recorded, null otherwise

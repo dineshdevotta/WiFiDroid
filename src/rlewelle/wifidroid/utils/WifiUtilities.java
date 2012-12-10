@@ -23,17 +23,4 @@ public class WifiUtilities {
 
         return -1;
     }
-
-    // mumble mumble Java mumble mumble functional mumble mumble map
-    public static List<AccessPoint> accessPointsFromScanResults(List<ScanResult> scanResults) {
-        if (scanResults == null)
-            return null;
-
-        List<AccessPoint> data = new ArrayList<AccessPoint>(scanResults.size());
-
-        for (ScanResult result : scanResults)
-            data.add(AccessPoint.getInstance(result));
-
-        return data;
-    }
 }

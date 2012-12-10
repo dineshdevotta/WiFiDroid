@@ -4,12 +4,15 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.*;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import android.util.Pair;
 import android.widget.Toast;
 import rlewelle.wifidroid.data.AccessPoint;
+import rlewelle.wifidroid.data.AccessPointDataPoint;
 import rlewelle.wifidroid.utils.WifiUtilities;
 
 import java.util.*;
@@ -21,16 +24,12 @@ public class DataService extends Service {
 
     private WifiManager wifiManager;
 
-    // The absolute latest results, with no regard to past results
-    // (i.e. pretty much exactly what WifiManager gives us)
-    private Set<AccessPoint> latestResults;
+    private long lastUpdate;
 
-    // Aggregated results over time; shows the latest data we have
-    // for all access points we've seen
-    private Set<AccessPoint> aggregatedResults;
-
-    // The full data catalogue
-    private Map<String, AccessPoint> resultsByTime;
+    // The complete data set that we are currently operating with
+    // Each access point is associated with a history of data points associated with a specific time
+    // I'm going to assume that entries are added to the list in order of increasing time
+    private Map<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> data = new HashMap<>();
 
     @Override
     public void onCreate() {
@@ -74,59 +73,90 @@ public class DataService extends Service {
     private BroadcastReceiver scanResultReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            latestResults = new HashSet<AccessPoint>(WifiUtilities.accessPointsFromScanResults(wifiManager.getScanResults()));
+            lastUpdate = System.currentTimeMillis();
 
-            if (aggregatedResults == null)
-                aggregatedResults = new HashSet<AccessPoint>();
+            List<ScanResult> results = wifiManager.getScanResults();
+            for (ScanResult result : results) {
+                AccessPoint ap = AccessPoint.getInstance(result);
+                AccessPointDataPoint dp = new AccessPointDataPoint(result.level, null);
 
-            // We defined the equality of access points based on their BSSIDs
-            // but not the last time that we saw them. We want to update the
-            // last seen time, so remove them then re-add them.
-            // A map may be a better choice here.
-            aggregatedResults.removeAll(latestResults);
-            aggregatedResults.addAll(latestResults);
+                if (!data.containsKey(ap))
+                    data.put(ap, new ArrayList<Pair<Long, AccessPointDataPoint>>());
+
+                data.get(ap).add(new Pair<>(lastUpdate, dp));
+            }
 
             sendBroadcast(new Intent(SCAN_RESULTS_AVAILABLE_ACTION));
         }
     };
 
-    public AccessPoint getAccessPointStatus(String BSSID) {
-        if (aggregatedResults == null) return null;
+    /**
+     * Returns the time at which the DataService received its last update
+     * @return
+     */
+    public long getLastUpdateTimeInMillis() { return lastUpdate; }
 
-        for (AccessPoint ap : aggregatedResults) {
-            if (ap.BSSID.equals(BSSID)) {
-                return ap;
-            }
-        }
+    public Map<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> getData() { return data; }
 
-        return null;
+    /**
+     * Get the most recent data point for the given access point, if it exists.
+     * @param ap
+     * @return The data point if it exists, null if it doesn't
+     */
+    public Pair<Long, AccessPointDataPoint> getLatestResult(AccessPoint ap) {
+        List<Pair<Long, AccessPointDataPoint>> dpList = data.get(ap);
+
+        if (dpList == null)
+            return null;
+
+        return dpList.get(dpList.size() - 1);
     }
 
     /**
-     * Get the latest scan results made available by the OS
-     * @return the results if recorded, null otherwise
+     * Returns only the entries in the dataset that were seen on the last update
+     * @return Always a map, possibly empty
      */
-    public Set<AccessPoint> getLatestResults() {
-        return latestResults;
+    public Map<AccessPoint, AccessPointDataPoint> getLatestResults() {
+        Map<AccessPoint, AccessPointDataPoint> map = new HashMap<>();
+
+        // Really missing C# var about now. Damn you Java! Get with the goddamned program!
+        // Hell, I miss LINQ. Functional makes this hella easy!
+        for (Map.Entry<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> entry : data.entrySet()) {
+            Pair<Long, AccessPointDataPoint> dp = entry.getValue().get(entry.getValue().size() - 1);
+
+            if (dp.first == lastUpdate)
+                map.put(entry.getKey(), dp.second);
+        }
+
+        return map;
     }
 
-    public Set<AccessPoint> getAggregatedResults() {
-        return aggregatedResults;
-    }
+    /**
+     * Returns the latest data value for all access points in the dataset, regardless
+     * of when we last saw them
+     * @return Always a map, possibly empty
+     */
+    public Map<AccessPoint, Pair<Long, AccessPointDataPoint>> getAggregatedResults() {
+        Map<AccessPoint, Pair<Long, AccessPointDataPoint>> map = new HashMap<>();
 
-    public void clearAggregatedResults() {
-        aggregatedResults.clear();
+        for (Map.Entry<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> entry : data.entrySet()) {
+            Pair<Long, AccessPointDataPoint> dp = entry.getValue().get(entry.getValue().size() - 1);
+            map.put(entry.getKey(), dp);
+        }
+
+        return map;
     }
 
     public boolean isWifiEnabled() {
         return wifiManager.isWifiEnabled();
     }
 
-    public boolean startScan() {
-        if (!isWifiEnabled())
-            return false;
-
-        return wifiManager.startScan();
+    /**
+     * Instructs the DataService to attempt to acquire another datapoint
+     * @return true if the user should expect an update
+     */
+    public boolean requestUpdate() {
+        return isWifiEnabled() && wifiManager.startScan();
     }
 
     public class DataServiceBinder extends Binder {

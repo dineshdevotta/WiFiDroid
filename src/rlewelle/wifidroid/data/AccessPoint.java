@@ -1,6 +1,7 @@
 package rlewelle.wifidroid.data;
 
 import android.net.wifi.ScanResult;
+import rlewelle.wifidroid.utils.WifiUtilities;
 
 import java.util.Calendar;
 
@@ -8,28 +9,25 @@ import java.util.Calendar;
  * Information that would uniquely identify a single access point
  */
 public class AccessPoint {
-    public String SSID;
-    public String BSSID;
+    private String SSID;
+    private String BSSID;
+    private int frequency;
 
-    public int level;
-    public int frequency;
-
-    public long lastSeen;
+    private AccessPoint() {}
 
     public static AccessPoint getInstance(ScanResult result) {
         AccessPoint ap = new AccessPoint();
         ap.BSSID = result.BSSID;
         ap.SSID = result.SSID;
-        ap.level = result.level;
         ap.frequency = result.frequency;
-        ap.lastSeen = Calendar.getInstance().getTimeInMillis();
 
         return ap;
     }
 
     @Override
     public int hashCode() {
-        return BSSID.hashCode();
+        // Perhaps not the highest-quality hash, but unless we see perf. problems, not an issue
+        return BSSID.hashCode() + SSID.hashCode() + frequency;
     }
 
     @Override
@@ -37,6 +35,19 @@ public class AccessPoint {
         if (o == null) return false;
         if (o == this) return true;
         if (!(o instanceof AccessPoint)) return false;
-        return ((AccessPoint)o).BSSID.equals(BSSID);
+
+        AccessPoint ap = (AccessPoint)o;
+
+        return ap.BSSID.equals(BSSID) &&
+               ap.SSID.equals(SSID) &&
+               ap.frequency == frequency;
+    }
+
+    public String getBSSID() { return BSSID; }
+    public String getSSID() { return SSID; }
+    public int getFrequency() { return frequency; }
+
+    public int getChannel() {
+        return WifiUtilities.convertFrequencyToChannel(frequency);
     }
 }

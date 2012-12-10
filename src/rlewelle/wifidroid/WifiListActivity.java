@@ -1,17 +1,17 @@
 package rlewelle.wifidroid;
 
 import android.app.ListActivity;
-import android.app.Notification;
 import android.content.*;
 import android.graphics.Color;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.text.format.DateUtils;
 import android.util.Log;
+import android.util.Pair;
 import android.view.*;
 import android.widget.*;
 import rlewelle.wifidroid.data.AccessPoint;
+import rlewelle.wifidroid.data.AccessPointDataPoint;
 import rlewelle.wifidroid.utils.WifiUtilities;
 
 import java.util.*;
@@ -69,7 +69,7 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.wifi_list_refresh:
-                serviceLink.getService().startScan();
+                serviceLink.getService().requestUpdate();
                 break;
 
             default:
@@ -83,9 +83,9 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
     protected void onListItemClick(ListView list, View view, int position, long id) {
         AccessPoint ap = (AccessPoint) getListView().getItemAtPosition(position);
 
-        Intent intent = new Intent(this, WifiMeterActivity.class);
-        intent.putExtra(WifiMeterActivity.EXTRA_BSSID, ap.BSSID);
-        startActivity(intent);
+        //Intent intent = new Intent(this, WifiMeterActivity.class);
+        //intent.putExtra(WifiMeterActivity.EXTRA_BSSID, (Object) ap);
+        //startActivity(intent);
     }
 
     private void displayLatestResults() {
@@ -93,12 +93,10 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
             return;
 
         // Retrieve and flatten result set into a list for use with the adapter
-        Set<AccessPoint> latestResults      = serviceLink.getService().getLatestResults();
-        Set<AccessPoint> aggregatedResults  = serviceLink.getService().getAggregatedResults();
-        if (latestResults == null || aggregatedResults == null) {
-            Log.d("rlewelle.WifiListActivity.displayResults", "go NULL latest/aggregated result sets!");
-            return;
-        }
+        Map<AccessPoint, Pair<Long, AccessPointDataPoint>> results = serviceLink.getService().getAggregatedResults();
+
+        // Flatten the map down to a list suitable for use with an array adapter
+        List<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> data = new ArrayList<>(results.entrySet());
 
         /*
         Collections.sort(scanResults, new Comparator<AccessPoint>() {
@@ -116,16 +114,15 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
         });
         */
 
-        setListAdapter(new NetworkListAdapter(latestResults, aggregatedResults));
+        setListAdapter(new NetworkListAdapter(data, serviceLink.getService().getLastUpdateTimeInMillis()));
     }
 
-    public class NetworkListAdapter extends ArrayAdapter<AccessPoint> {
-        private Set<AccessPoint> inactiveAccessPoints;
+    public class NetworkListAdapter extends ArrayAdapter<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> {
+        private long updateTime;
 
-        public NetworkListAdapter(Set<AccessPoint> latestResult, Set<AccessPoint> aggregatedResult) {
-            super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid, new ArrayList<AccessPoint>(aggregatedResult));
-            inactiveAccessPoints = new HashSet<AccessPoint>(aggregatedResult);
-            inactiveAccessPoints.removeAll(latestResult);
+        public NetworkListAdapter(List<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> data, long updateTime) {
+            super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid, data);
+            this.updateTime = updateTime;
         }
 
         @Override
@@ -140,7 +137,9 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 holder = (NetworkListRowHolder)convertView.getTag();
             }
 
-            holder.hydrate(getItem(position));
+            Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>> entry = getItem(position);
+            holder.hydrate(entry.getKey(), entry.getValue().first, entry.getValue().second);
+
             return convertView;
         }
 
@@ -157,10 +156,11 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 strength = (ProgressBar)view.findViewById(R.id.network_strength);
             }
 
-            public void hydrate(AccessPoint scan) {
-                ssid.setText(scan.SSID);
+            public void hydrate(AccessPoint ap, Long seenTime, AccessPointDataPoint dp) {
+                ssid.setText(ap.getSSID());
 
-                if (NetworkListAdapter.this.inactiveAccessPoints.contains(scan)) {
+                // Highlight access points that we didn't see on latest update
+                if (seenTime < updateTime) {
                     ssid.setTextColor(Color.RED);
                 }
 
@@ -174,9 +174,9 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 // Channel 14 - 2484
 
                 // There's also 5GHz channels, but I'm not worrying about those right now
-                int channelNumber = WifiUtilities.convertFrequencyToChannel(scan.frequency);
+                int channelNumber = ap.getChannel();
                 String channelStr = channelNumber == -1
-                                  ? String.format("(%d Hz)", scan.frequency)
+                                  ? String.format("(%d Hz)", ap.getFrequency())
                                   : Integer.toString(channelNumber);
 
                 channel.setText(channelStr);
@@ -187,7 +187,7 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 seen.setText("Last seen " +
                     DateUtils.getRelativeDateTimeString(
                         WifiListActivity.this,
-                        scan.lastSeen,
+                        seenTime,
                         DateUtils.SECOND_IN_MILLIS,
                         DateUtils.DAY_IN_MILLIS,
                         0
@@ -202,7 +202,7 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 //   + 100     [0,     70]
                 int maxLevel = 32;
                 strength.setMax(maxLevel);
-                strength.setProgress(WifiManager.calculateSignalLevel(scan.level, maxLevel));
+                strength.setProgress(WifiManager.calculateSignalLevel(dp.getLevel(), maxLevel));
             }
         }
     }

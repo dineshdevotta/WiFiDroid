@@ -63,12 +63,14 @@ public class WifiMeterActivity extends Activity implements DataService.IDataServ
     }
 
     public void displayLatestResults() {
+        /*
         AccessPoint ap = serviceLink.getService().getAccessPointStatus(BSSID);
 
         if (ap == null)
             return;
 
         holder.hydrate(ap);
+        */
     }
 
     private class WifiMeterHolder {
@@ -81,8 +83,8 @@ public class WifiMeterActivity extends Activity implements DataService.IDataServ
         }
 
         public void hydrate(AccessPoint ap) {
-            BSSID.setText(ap.BSSID);
-            SSID.setText(ap.SSID);
+            BSSID.setText(ap.getBSSID());
+            SSID.setText(ap.getSSID());
         }
     }
 }

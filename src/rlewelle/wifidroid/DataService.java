@@ -82,6 +82,11 @@ public class DataService extends Service {
         if (aggregatedResults == null)
             aggregatedResults = new HashSet<AccessPoint>();
 
+        // We defined the equality of access points based on their BSSIDs
+        // but not the last time that we saw them. We want to update the
+        // last seen time, so remove them then re-add them.
+        // A map may be a better choice here.
+        aggregatedResults.removeAll(latestResults);
         aggregatedResults.addAll(latestResults);
 
         sendBroadcast(new Intent(SCAN_RESULTS_AVAILABLE_ACTION));

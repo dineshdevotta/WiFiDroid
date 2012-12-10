@@ -63,6 +63,15 @@ public class WifiListActivity extends ListActivity {
         return true;
     }
 
+    @Override
+    protected void onListItemClick(ListView list, View view, int position, long id) {
+        AccessPoint ap = (AccessPoint) getListView().getItemAtPosition(position);
+
+        Intent intent = new Intent(this, WifiMeterActivity.class);
+        intent.putExtra(WifiMeterActivity.EXTRA_BSSID, ap.BSSID);
+        startActivity(intent);
+    }
+
     private void displayLatestResults() {
         if (service == null)
             return;

@@ -25,6 +25,7 @@
             </intent-filter>
 
         </activity>
+        <activity android:name=".WifiMeterActivity"/>
 
         <service android:name=".DataService"/>
     </application>

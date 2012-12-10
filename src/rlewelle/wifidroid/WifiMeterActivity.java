@@ -9,58 +9,67 @@ import android.widget.TextView;
 import android.widget.Toast;
 import rlewelle.wifidroid.data.AccessPoint;
 
-public class WifiMeterActivity extends Activity {
+public class WifiMeterActivity extends Activity implements DataService.IDataServicable{
     public static final String EXTRA_BSSID = "rlewelle.wifidroid.wifimeteractivity.BSSID";
+
+    DataService.DataServiceLink serviceLink = new DataService.DataServiceLink(this);
 
     private String BSSID;
     private WifiMeterHolder holder;
-    private DataService service;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.wifi_meter);
         holder = new WifiMeterHolder();
+        serviceLink.onCreate();
 
         BSSID = getIntent().getStringExtra(EXTRA_BSSID);
-
-        registerReceiver(scanResultsReceived, new IntentFilter(DataService.SCAN_RESULTS_AVAILABLE_ACTION));
-        bindService(new Intent(this, DataService.class), serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onDestroy() {
-        unregisterReceiver(scanResultsReceived);
-        unbindService(serviceConnection);
-
+        serviceLink.onDestroy();
         super.onDestroy();
     }
 
-    public void displayLatestResults() {
-        AccessPoint ap = service.getAccessPointStatus(BSSID);
-        if (ap == null) return;
-        holder.hydrate(ap);
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // We may not have received the latest updates (via intent) while paused,
+        // so just ask the DataService for the most recent updates
+        if (serviceLink.getService() == null)
+            return;
+
+        displayLatestResults();
     }
 
-    private BroadcastReceiver scanResultsReceived = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            displayLatestResults();
-        }
-    };
+    @Override
+    public void onServiceConnected() {
+        displayLatestResults();
+    }
 
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder binder) {
-            service = ((DataService.DataServiceBinder) binder).getService();
-            displayLatestResults();
-        }
+    @Override
+    public void onServiceDisconnected() {}
 
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-            Toast.makeText(WifiMeterActivity.this, "The Wifi DataService was unexpectedly shutdown!", Toast.LENGTH_LONG);
-            service = null;
-        }
-    };
+    @Override
+    public void onScanResultsReceived() {
+        displayLatestResults();
+    }
+
+    @Override
+    public Context getContext() {
+        return this;
+    }
+
+    public void displayLatestResults() {
+        AccessPoint ap = serviceLink.getService().getAccessPointStatus(BSSID);
+
+        if (ap == null)
+            return;
+
+        holder.hydrate(ap);
+    }
 
     private class WifiMeterHolder {
         public TextView BSSID;

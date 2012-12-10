@@ -1,6 +1,8 @@
 package rlewelle.wifidroid.data;
 
 import android.net.wifi.ScanResult;
+import android.os.Parcel;
+import android.os.Parcelable;
 import rlewelle.wifidroid.utils.WifiUtilities;
 
 import java.util.Calendar;
@@ -8,7 +10,7 @@ import java.util.Calendar;
 /**
  * Information that would uniquely identify a single access point
  */
-public class AccessPoint {
+public class AccessPoint implements Parcelable {
     private String SSID;
     private String BSSID;
     private int frequency;
@@ -50,4 +52,33 @@ public class AccessPoint {
     public int getChannel() {
         return WifiUtilities.convertFrequencyToChannel(frequency);
     }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel parcel, int flags) {
+        parcel.writeString(BSSID);
+        parcel.writeString(SSID);
+        parcel.writeInt(frequency);
+    }
+
+    public static final Parcelable.Creator<AccessPoint> CREATOR = new Parcelable.Creator<AccessPoint>() {
+        @Override
+        public AccessPoint createFromParcel(Parcel parcel) {
+            AccessPoint ap = new AccessPoint();
+            ap.BSSID = parcel.readString();
+            ap.SSID = parcel.readString();
+            ap.frequency = parcel.readInt();
+
+            return ap;
+        }
+
+        @Override
+        public AccessPoint[] newArray(int size) {
+            return new AccessPoint[size];
+        }
+    };
 }

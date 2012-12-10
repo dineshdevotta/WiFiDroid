@@ -10,11 +10,12 @@ import android.widget.Toast;
 import rlewelle.wifidroid.data.AccessPoint;
 
 public class WifiMeterActivity extends Activity implements DataService.IDataServicable{
-    public static final String EXTRA_BSSID = "rlewelle.wifidroid.wifimeteractivity.BSSID";
+    public static final String EXTRA_AP = "rlewelle.wifidroid.wifimeteractivity.EXTRA_AP";
 
-    DataService.DataServiceLink serviceLink = new DataService.DataServiceLink(this);
+    private DataService.DataServiceLink serviceLink = new DataService.DataServiceLink(this);
 
-    private String BSSID;
+    private AccessPoint ap;
+
     private WifiMeterHolder holder;
 
     public void onCreate(Bundle savedInstanceState) {
@@ -23,7 +24,7 @@ public class WifiMeterActivity extends Activity implements DataService.IDataServ
         holder = new WifiMeterHolder();
         serviceLink.onCreate();
 
-        BSSID = getIntent().getStringExtra(EXTRA_BSSID);
+        ap = getIntent().getParcelableExtra(EXTRA_AP);
     }
 
     @Override
@@ -63,14 +64,10 @@ public class WifiMeterActivity extends Activity implements DataService.IDataServ
     }
 
     public void displayLatestResults() {
-        /*
-        AccessPoint ap = serviceLink.getService().getAccessPointStatus(BSSID);
-
         if (ap == null)
             return;
 
         holder.hydrate(ap);
-        */
     }
 
     private class WifiMeterHolder {

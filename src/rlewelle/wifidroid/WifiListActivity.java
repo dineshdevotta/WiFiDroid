@@ -17,7 +17,7 @@ import rlewelle.wifidroid.utils.WifiUtilities;
 import java.util.*;
 
 public class WifiListActivity extends ListActivity implements DataService.IDataServicable{
-    DataService.DataServiceLink serviceLink = new DataService.DataServiceLink(this);
+    private DataService.DataServiceLink serviceLink = new DataService.DataServiceLink(this);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -81,11 +81,11 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
 
     @Override
     protected void onListItemClick(ListView list, View view, int position, long id) {
-        AccessPoint ap = (AccessPoint) getListView().getItemAtPosition(position);
+        AccessPoint ap = ((Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>) getListView().getItemAtPosition(position)).getKey();
 
-        //Intent intent = new Intent(this, WifiMeterActivity.class);
-        //intent.putExtra(WifiMeterActivity.EXTRA_BSSID, (Object) ap);
-        //startActivity(intent);
+        Intent intent = new Intent(this, WifiMeterActivity.class);
+        intent.putExtra(WifiMeterActivity.EXTRA_AP, ap);
+        startActivity(intent);
     }
 
     private void displayLatestResults() {

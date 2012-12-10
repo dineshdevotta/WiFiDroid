@@ -1,4 +1,4 @@
-package rlewelle.wifidroid;
+package rlewelle.wifidroid.utils;
 
 import android.net.wifi.ScanResult;
 import rlewelle.wifidroid.data.AccessPoint;

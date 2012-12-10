@@ -14,7 +14,7 @@ public class AccessPoint {
     public int level;
     public int frequency;
 
-    public Calendar lastSeen;
+    public long lastSeen;
 
     public static AccessPoint getInstance(ScanResult result) {
         AccessPoint ap = new AccessPoint();
@@ -22,7 +22,7 @@ public class AccessPoint {
         ap.SSID = result.SSID;
         ap.level = result.level;
         ap.frequency = result.frequency;
-        ap.lastSeen = Calendar.getInstance();
+        ap.lastSeen = Calendar.getInstance().getTimeInMillis();
 
         return ap;
     }

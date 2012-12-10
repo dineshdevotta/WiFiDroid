@@ -5,13 +5,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.*;
 import android.widget.*;
 import rlewelle.wifidroid.data.AccessPoint;
+import rlewelle.wifidroid.utils.WifiUtilities;
 
 import java.util.*;
 
@@ -86,8 +87,6 @@ public class WifiListActivity extends ListActivity
             return;
         }
 
-
-
         Collections.sort(scanResults, new Comparator<AccessPoint>() {
             @Override
             public int compare(AccessPoint a, AccessPoint b) {
@@ -141,8 +140,16 @@ public class WifiListActivity extends ListActivity
 
                 // ScanResult.timestamp is not the last time we saw this AP - rather, it is
                 // the synchronized time function of that access point; each network maintains
-                // this number such that it is consistant across devices on that network.
-                seen.setText("Last seen n seconds ago");
+                // this number such that it is consistent across devices on that network.
+                seen.setText("Last seen " +
+                    DateUtils.getRelativeDateTimeString(
+                        WifiListActivity.this,
+                        scan.lastSeen,
+                        DateUtils.SECOND_IN_MILLIS,
+                        DateUtils.DAY_IN_MILLIS,
+                        0
+                    )
+                );
 
                 // The signal strength is measured in milli-watt decibels (relative to 1 milli-watt)
                 // Generally, these values are negative and somewhere in the [-100, 0] range, with

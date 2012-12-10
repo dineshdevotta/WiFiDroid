@@ -1,12 +1,10 @@
 package rlewelle.wifidroid;
 
 import android.app.ListActivity;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.*;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.*;
@@ -16,27 +14,31 @@ import rlewelle.wifidroid.utils.WifiUtilities;
 
 import java.util.*;
 
-public class WifiListActivity extends ListActivity
-{
-    WifiManager wifi;
+public class WifiListActivity extends ListActivity {
+    DataService service;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        registerReceiver(scanResultsReceived, new IntentFilter(DataService.SCAN_RESULTS_AVAILABLE_ACTION));
+        bindService(new Intent(this, DataService.class), serviceConnection, Context.BIND_AUTO_CREATE);
+    }
 
-        registerReceiver(
-            new BroadcastReceiver() {
-                public void onReceive(Context context, Intent intent) {
-                    Toast.makeText(WifiListActivity.this, "Got new data", Toast.LENGTH_SHORT).show();
-                    displayData();
-                }
-            },
+    @Override
+    protected void onDestroy() {
+        unregisterReceiver(scanResultsReceived);
+        unbindService(serviceConnection);
+        super.onDestroy();
+    }
 
-            new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
-        );
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-        displayData();
+        if (service == null)
+            return;
+
+        displayLatestResults();
     }
 
     @Override
@@ -49,12 +51,7 @@ public class WifiListActivity extends ListActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.wifi_list_refresh:
-                if (!checkWifiEnabled()) return false;
-                if (!wifi.startScan()) {
-                    // Not really sure what would cause this, or what to do about it
-                    Log.d("WifiListActivity.wifi_list_refresh", "startScan() returned false!");
-                }
-
+                service.startScan();
                 break;
 
             default:
@@ -64,26 +61,14 @@ public class WifiListActivity extends ListActivity
         return true;
     }
 
-    /**
-     * Make sure that wifi is enabled, and if not, tell the user.
-     * @return True if wifi is enabled.
-     */
-    public boolean checkWifiEnabled() {
-        if (!wifi.isWifiEnabled()) {
-            Toast.makeText(this, "Wifi is disabled!", Toast.LENGTH_LONG).show();
-            return false;
-        }
+    private void displayLatestResults() {
+        if (service == null)
+            return;
 
-        return true;
-    }
+        List<AccessPoint> scanResults = service.getLatestResults();
 
-    // Grab and display the latest data from the WifiManager
-    public void displayData() {
-        if (!checkWifiEnabled()) return;
-
-        List<AccessPoint> scanResults = WifiUtilities.accessPointsFromScanResults(wifi.getScanResults());
         if (scanResults == null) {
-            Log.d("WifiListActivity.onCreate", "scanResults is NULL");
+            Log.d("rlewelle.WifiListActivity.displayResults", "scanResults is NULL");
             return;
         }
 
@@ -103,6 +88,28 @@ public class WifiListActivity extends ListActivity
 
         setListAdapter(new NetworkListAdapter(scanResults));
     }
+
+    private BroadcastReceiver scanResultsReceived = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Toast.makeText(WifiListActivity.this, "Got new data", Toast.LENGTH_SHORT).show();
+            displayLatestResults();
+        }
+    };
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder binder) {
+            service = ((DataService.DataServiceBinder) binder).getService();
+            displayLatestResults();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            Toast.makeText(WifiListActivity.this, "The Wifi DataService was unexpectedly shutdown!", Toast.LENGTH_LONG);
+            service = null;
+        }
+    };
 
     public class NetworkListAdapter extends ArrayAdapter<AccessPoint> {
         public class NetworkListRowHolder {

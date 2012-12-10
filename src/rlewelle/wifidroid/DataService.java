@@ -26,6 +26,13 @@ public class DataService extends Service {
 
     private long lastUpdate;
 
+    // How long (in milleseconds) to wait before automatically requesting another update
+    // once we have received an update. A value of zero indicates to ask for another
+    // update the moment we get the update. A value < 0 indicates that we should not
+    // automatically refresh.
+    private long updateDelay = -1;
+    private Timer updateTimer = new Timer(true);
+
     // The complete data set that we are currently operating with
     // Each access point is associated with a history of data points associated with a specific time
     // I'm going to assume that entries are added to the list in order of increasing time
@@ -86,6 +93,17 @@ public class DataService extends Service {
                 data.get(ap).add(new Pair<>(lastUpdate, dp));
             }
 
+            if (updateDelay > 0) {
+                updateTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        requestUpdate();
+                    }
+                }, updateDelay);
+            } else if (updateDelay == 0) {
+                requestUpdate();
+            }
+
             sendBroadcast(new Intent(SCAN_RESULTS_AVAILABLE_ACTION));
         }
     };
@@ -119,6 +137,15 @@ public class DataService extends Service {
             return null;
 
         return dpList.get(dpList.size() - 1);
+    }
+
+    /**
+     * Returns all recorded data for the given access point
+     * @param ap
+     * @return the history if it exists, null if we have not observed the given ap
+     */
+    public List<Pair<Long, AccessPointDataPoint>> getHistory(AccessPoint ap) {
+        return data.get(ap);
     }
 
     /**
@@ -166,6 +193,19 @@ public class DataService extends Service {
      */
     public boolean requestUpdate() {
         return isWifiEnabled() && wifiManager.startScan();
+    }
+
+    /**
+     * Instructs the DataService to automatically update on the given interval.
+     * The behaviour changes based on the value of delay; a value less than zero indicates
+     * not to auto-update, a value of zero will request a new update as soon as one is received,
+     * and a value greater than zero will have a scheduled request for an update.
+     * @param delay How many milliseconds to wait before requesting the next update
+     */
+    public void setUpdateDelay(long delay) {
+        // New value of less than 0 indicates we should stop updates
+        updateTimer.purge();
+        requestUpdate();
     }
 
     public class DataServiceBinder extends Binder {

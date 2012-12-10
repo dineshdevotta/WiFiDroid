@@ -8,4 +8,10 @@
         android:icon="@drawable/ic_menu_refresh"
         android:showAsAction="always" />
 
+    <item
+        android:id="@+id/wifi_list_reset"
+        android:title="Clear Dataset"
+        android:icon="@drawable/ic_menu_clear_playlist"
+        android:showAsAction="always" />
+
 </menu>

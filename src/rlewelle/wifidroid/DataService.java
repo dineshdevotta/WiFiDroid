@@ -99,6 +99,15 @@ public class DataService extends Service {
     public Map<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> getData() { return data; }
 
     /**
+     * Clears the data buffer and requests an update
+     */
+    public void clearData() {
+        data.clear();
+        lastUpdate = 0;
+        requestUpdate();
+    }
+
+    /**
      * Get the most recent data point for the given access point, if it exists.
      * @param ap
      * @return The data point if it exists, null if it doesn't

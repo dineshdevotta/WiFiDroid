@@ -72,6 +72,11 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 serviceLink.getService().requestUpdate();
                 break;
 
+            case R.id.wifi_list_reset:
+                serviceLink.getService().clearData();
+                setListAdapter(null);
+                break;
+
             default:
                 return super.onOptionsItemSelected(item);
         }

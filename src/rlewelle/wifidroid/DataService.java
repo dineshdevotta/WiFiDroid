@@ -20,30 +20,37 @@ public class DataService extends Service {
     private final IBinder binder = new DataServiceBinder();
 
     private WifiManager wifiManager;
-    private NotificationManager notificationManager;
 
+    // The absolute latest results, with no regard to past results
+    // (i.e. pretty much exactly what WifiManager gives us)
     private Set<AccessPoint> latestResults;
+
+    // Aggregated results over time; shows the latest data we have
+    // for all access points we've seen
     private Set<AccessPoint> aggregatedResults;
+
+    // The full data catalogue
+    private Map<String, AccessPoint> resultsByTime;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d("rlewelle.DataService.onCreate", "derp");
 
         // Grab instance of the wifiManager manager
         wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         // Register receiver for when scan results are available
         registerReceiver(scanResultReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
 
-        //
+        // We don't know when the last scan was, so to avoid getting a
+        // data set with a questionable timestamp, just request a new
+        // scan
         wifiManager.startScan();
 
         // Throw an icon in the notification bar so the user knows we're running)
         Notification notification = new Notification.Builder(this)
-            .setContentTitle("Derp")
-            .setContentText("Herp")
+            .setContentTitle("WiFiDroid")
+            .setContentText("Scanner currently active")
             .setSmallIcon(R.drawable.recording)
             .build();
 
@@ -52,42 +59,34 @@ public class DataService extends Service {
 
     @Override
     public void onDestroy() {
-        Log.d("rlewelle.DataService.onDestroy", "derp");
         unregisterReceiver(scanResultReceiver);
         super.onDestroy();
     }
 
     public IBinder onBind(Intent intent) {
-        Log.d("rlewelle.DataService.onBind", intent.toString());
         return binder;
     }
 
-    @Override
-    public boolean onUnbind(Intent intent) {
-        Log.d("DataService.unBind", intent.toString());
-        return super.onUnbind(intent);
-    }
-
     /**
-     * Receiver for when new ScanResults are made available by the OS
+     * Receiver for when new ScanResults are made available by the OS.
+     * Converts the data from the OS ScanResult to our domain model AccessPoint
      */
     private BroadcastReceiver scanResultReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-        Log.d("DataService.scanner", "DataService receives new data");
-        latestResults = new HashSet<AccessPoint>(WifiUtilities.accessPointsFromScanResults(wifiManager.getScanResults()));
+            latestResults = new HashSet<AccessPoint>(WifiUtilities.accessPointsFromScanResults(wifiManager.getScanResults()));
 
-        if (aggregatedResults == null)
-            aggregatedResults = new HashSet<AccessPoint>();
+            if (aggregatedResults == null)
+                aggregatedResults = new HashSet<AccessPoint>();
 
-        // We defined the equality of access points based on their BSSIDs
-        // but not the last time that we saw them. We want to update the
-        // last seen time, so remove them then re-add them.
-        // A map may be a better choice here.
-        aggregatedResults.removeAll(latestResults);
-        aggregatedResults.addAll(latestResults);
+            // We defined the equality of access points based on their BSSIDs
+            // but not the last time that we saw them. We want to update the
+            // last seen time, so remove them then re-add them.
+            // A map may be a better choice here.
+            aggregatedResults.removeAll(latestResults);
+            aggregatedResults.addAll(latestResults);
 
-        sendBroadcast(new Intent(SCAN_RESULTS_AVAILABLE_ACTION));
+            sendBroadcast(new Intent(SCAN_RESULTS_AVAILABLE_ACTION));
         }
     };
 

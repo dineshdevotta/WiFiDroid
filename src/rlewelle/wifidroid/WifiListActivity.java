@@ -3,6 +3,7 @@ package rlewelle.wifidroid;
 import android.app.ListActivity;
 import android.app.Notification;
 import android.content.*;
+import android.graphics.Color;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -67,13 +68,14 @@ public class WifiListActivity extends ListActivity {
             return;
 
         // Retrieve and flatten result set into a list for use with the adapter
-        Set<AccessPoint> accessPointSet = service.getAggregatedResults();
-        if (accessPointSet == null) {
-            Log.d("rlewelle.WifiListActivity.displayResults", "scanResults is NULL");
+        Set<AccessPoint> latestResults      = service.getLatestResults();
+        Set<AccessPoint> aggregatedResults  = service.getAggregatedResults();
+        if (latestResults == null || aggregatedResults == null) {
+            Log.d("rlewelle.WifiListActivity.displayResults", "go NULL latest/aggregated result sets!");
             return;
         }
 
-        List<AccessPoint> scanResults = new ArrayList<AccessPoint>(accessPointSet);
+        /*
         Collections.sort(scanResults, new Comparator<AccessPoint>() {
             @Override
             public int compare(AccessPoint a, AccessPoint b) {
@@ -87,8 +89,9 @@ public class WifiListActivity extends ListActivity {
                 //return a.SSID.compareTo(b.SSID);
             }
         });
+        */
 
-        setListAdapter(new NetworkListAdapter(scanResults));
+        setListAdapter(new NetworkListAdapter(latestResults, aggregatedResults));
     }
 
     private BroadcastReceiver scanResultsReceived = new BroadcastReceiver() {
@@ -128,6 +131,10 @@ public class WifiListActivity extends ListActivity {
 
             public void hydrate(AccessPoint scan) {
                 ssid.setText(scan.SSID);
+
+                if (NetworkListAdapter.this.inactiveAccessPoints.contains(scan)) {
+                    ssid.setTextColor(Color.RED);
+                }
 
                 // Assuming we're talking about a 2.4GHz WiFi source, channels are as follows:
                 // Channel 1 - 2412
@@ -171,8 +178,12 @@ public class WifiListActivity extends ListActivity {
             }
         }
 
-        public NetworkListAdapter(List<AccessPoint> scanResults) {
-            super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid, scanResults);
+        private Set<AccessPoint> inactiveAccessPoints;
+
+        public NetworkListAdapter(Set<AccessPoint> latestResult, Set<AccessPoint> aggregatedResult) {
+            super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid, new ArrayList<AccessPoint>(aggregatedResult));
+            inactiveAccessPoints = new HashSet<AccessPoint>(aggregatedResult);
+            inactiveAccessPoints.removeAll(latestResult);
         }
 
         @Override

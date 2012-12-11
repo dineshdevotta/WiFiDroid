@@ -1,5 +1,7 @@
 package rlewelle.wifidroid.data;
 
+import android.net.wifi.WifiManager;
+
 /**
  * Time-dependent data for an access point
  */
@@ -13,5 +15,7 @@ public class AccessPointDataPoint {
     }
 
     public int getLevel() { return level; }
+    public float getNormalizedLevel() { return (float) WifiManager.calculateSignalLevel(level, 32) / 32.0f; }
+
     public Location getLocation() { return location; }
 }

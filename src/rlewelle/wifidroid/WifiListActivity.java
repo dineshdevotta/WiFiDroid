@@ -3,18 +3,21 @@ package rlewelle.wifidroid;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
-import android.content.*;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.text.format.DateUtils;
-import android.util.Log;
 import android.util.Pair;
 import android.view.*;
-import android.widget.*;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import rlewelle.wifidroid.data.AccessPoint;
 import rlewelle.wifidroid.data.AccessPointDataPoint;
-import rlewelle.wifidroid.utils.WifiUtilities;
 
 import java.util.*;
 

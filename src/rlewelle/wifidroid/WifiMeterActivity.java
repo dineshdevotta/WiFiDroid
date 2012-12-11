@@ -1,28 +1,20 @@
 package rlewelle.wifidroid;
 
 import android.app.Activity;
-import android.content.*;
+import android.content.Context;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.util.Pair;
-import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
-import org.achartengine.chart.BarChart;
 import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;
-import org.achartengine.renderer.SimpleSeriesRenderer;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 import rlewelle.wifidroid.data.AccessPoint;
 import rlewelle.wifidroid.data.AccessPointDataPoint;
 
-import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class WifiMeterActivity extends Activity implements DataService.IDataServicable{
     public static final String EXTRA_AP = "rlewelle.wifidroid.wifimeteractivity.EXTRA_AP";
@@ -94,7 +86,7 @@ public class WifiMeterActivity extends Activity implements DataService.IDataServ
 
         long firstTime = serviceLink.getService().getFirstUpdateTimeInMillis();
         for (Map.Entry<Long, AccessPointDataPoint> dp : data.entrySet()) {
-            a.add((dp.getKey() - firstTime)/1000.0, 100.0f * dp.getValue().getNormalizedLevel());
+            a.add((dp.getKey() - firstTime) / 1000.0, 100.0f * dp.getValue().getNormalizedLevel());
         }
 
         XYMultipleSeriesDataset dataset = new XYMultipleSeriesDataset();

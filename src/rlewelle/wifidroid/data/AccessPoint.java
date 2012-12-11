@@ -5,8 +5,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import rlewelle.wifidroid.utils.WifiUtilities;
 
-import java.util.Calendar;
-
 /**
  * Information that would uniquely identify a single access point
  */

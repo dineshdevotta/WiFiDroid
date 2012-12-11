@@ -1,19 +1,15 @@
 package rlewelle.wifidroid;
 
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.*;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.IBinder;
-import android.util.Log;
-import android.util.Pair;
 import android.widget.Toast;
 import rlewelle.wifidroid.data.AccessPoint;
 import rlewelle.wifidroid.data.AccessPointDataPoint;
-import rlewelle.wifidroid.utils.WifiUtilities;
 
 import java.util.*;
 

@@ -76,7 +76,7 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 break;
 
             case R.id.wifi_list_auto_refresh:
-                final String[] options = new String[] {"0", "200", "500", "1000", "5000", "10000"};
+                final String[] options = new String[] {"0", "200", "500", "1000", "2000", "3000", "5000", "10000"};
 
                 Dialog dialog = new AlertDialog.Builder(this)
                     .setTitle("Automatic Update")

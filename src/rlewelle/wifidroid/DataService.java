@@ -24,9 +24,9 @@ public class DataService extends Service {
 
     private WifiManager wifiManager;
 
-    private long lastUpdate;
+    private ArrayList<Long> updateTimes = new ArrayList<>();
 
-    // How long (in milleseconds) to wait before automatically requesting another update
+    // How long (in milliseconds) to wait before automatically requesting another update
     // once we have received an update. A value of zero indicates to ask for another
     // update the moment we get the update. A value < 0 indicates that we should not
     // automatically refresh.
@@ -80,7 +80,8 @@ public class DataService extends Service {
     private BroadcastReceiver scanResultReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            lastUpdate = System.currentTimeMillis();
+            long updateTime = System.currentTimeMillis();
+            updateTimes.add(updateTime);
 
             List<ScanResult> results = wifiManager.getScanResults();
             for (ScanResult result : results) {
@@ -90,7 +91,7 @@ public class DataService extends Service {
                 if (!data.containsKey(ap))
                     data.put(ap, new ArrayList<Pair<Long, AccessPointDataPoint>>());
 
-                data.get(ap).add(new Pair<>(lastUpdate, dp));
+                data.get(ap).add(new Pair<>(updateTime, dp));
             }
 
             if (updateDelay > 0) {
@@ -109,19 +110,28 @@ public class DataService extends Service {
     };
 
     /**
+     * Returns the time at which the DataService received its first update
+     * @return
+     */
+    public long getFirstUpdateTimeInMillis() { return updateTimes.get(0); }
+
+    /**
      * Returns the time at which the DataService received its last update
      * @return
      */
-    public long getLastUpdateTimeInMillis() { return lastUpdate; }
+    public long getLastUpdateTimeInMillis() { return updateTimes.get(updateTimes.size()-1); }
 
-    public Map<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> getData() { return data; }
+    public List<Long> getUpdateTimesInMillis() { return Collections.unmodifiableList(updateTimes); }
+
+    public Map<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> getData() { return Collections.unmodifiableMap(data); }
 
     /**
      * Clears the data buffer and requests an update
      */
     public void clearData() {
         data.clear();
-        lastUpdate = 0;
+        updateTimes.clear();
+
         requestUpdate();
     }
 
@@ -154,6 +164,8 @@ public class DataService extends Service {
      */
     public Map<AccessPoint, AccessPointDataPoint> getLatestResults() {
         Map<AccessPoint, AccessPointDataPoint> map = new HashMap<>();
+
+        long lastUpdate = getLastUpdateTimeInMillis();
 
         // Really missing C# var about now. Damn you Java! Get with the goddamned program!
         // Hell, I miss LINQ. Functional makes this hella easy!

@@ -3,6 +3,7 @@ package rlewelle.wifidroid.graphs;
 import android.content.Context;
 import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
+import org.achartengine.chart.BarChart;
 import org.achartengine.chart.PointStyle;
 import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;
@@ -78,10 +79,11 @@ public class GraphFactory {
         dataRenderer.setYAxisMin(0.0);
         dataRenderer.setYAxisMax(100.0);
 
-        return ChartFactory.getLineChartView(
+        return ChartFactory.getBarChartView(
             context,
             dataSet,
-            dataRenderer
+            dataRenderer,
+            BarChart.Type.DEFAULT
         );
     }
 
@@ -116,6 +118,6 @@ public class GraphFactory {
         AccessPoint ap,
         AccessPointDataPoint dp
     ) {
-        seriesData.add(ap.getChannel(), dp.getNormalizedLevel());
+        seriesData.add(ap.getChannel(), 100.0f * dp.getNormalizedLevel());
     }
 }

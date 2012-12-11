@@ -3,6 +3,13 @@ package rlewelle.wifidroid;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
+import android.widget.FrameLayout;
+import org.achartengine.GraphicalView;
+import rlewelle.wifidroid.data.AccessPoint;
+import rlewelle.wifidroid.data.AccessPointDataPoint;
+import rlewelle.wifidroid.graphs.GraphFactory;
+
+import java.util.Map;
 
 public class WifiChannelsActivity extends Activity implements DataService.IDataServicable {
     private DataService.DataServiceLink serviceLink = new DataService.DataServiceLink(this);
@@ -44,6 +51,13 @@ public class WifiChannelsActivity extends Activity implements DataService.IDataS
     public void onServiceDisconnected() {}
 
     private void displayLatestResults() {
+        // Latest result
+        Map<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> aggregateData = serviceLink.getService().getAggregatedResults();
 
+        GraphicalView graph = GraphFactory.signalChannels(this, aggregateData);
+
+        FrameLayout graphHost = (FrameLayout) findViewById(R.id.network_channels_graph_frame);
+        graphHost.removeAllViews();
+        graphHost.addView(graph);
     }
 }

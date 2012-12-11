@@ -42,13 +42,17 @@ dead relatives and that by simply reassigning channels they can calm their restl
 internet until the Ghost Busters show up and break all his shit. Neil is unlucky.
 
 ##Use Cases
-###Access Point List
+###User views current list of access points
+###List of APs automatically refreshes
+###User views all available information on AP
+###Detail view displays signal strength over time
+###User views signal strength of many signals over time
+###User view channel assignments
 
+##Domain Classes
+AccessPoint             - Characteristics that uniquely identify a particular access point
+AccessPointDataPoint    - All time-dependent data that is generated for a given AccessPoint
 
-###Signal Strength Meter
-
-
-###Channel Assignment View
-
-
-###
+These will be organized as a map between access points (which are consistant through time) and a list of data points,
+each associated with a particular time. Most of the operations in the program will consist of manipulations of this
+central dataset.

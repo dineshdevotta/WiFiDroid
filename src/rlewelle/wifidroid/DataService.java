@@ -23,8 +23,7 @@ public class DataService extends Service {
     private final IBinder binder = new DataServiceBinder();
 
     private WifiManager wifiManager;
-
-    private ArrayList<Long> updateTimes = new ArrayList<>();
+    private Notification foregroundNotification;
 
     // How long (in milliseconds) to wait before automatically requesting another update
     // once we have received an update. A value of zero indicates to ask for another
@@ -33,10 +32,13 @@ public class DataService extends Service {
     private long updateDelay = -1;
     private Timer updateTimer = new Timer(true);
 
+    // Maintain set of times we've seen updates (that's also ordered so we can get first/last)
+    private TreeSet<Long> updateTimes = new TreeSet<>();
+
     // The complete data set that we are currently operating with
     // Each access point is associated with a history of data points associated with a specific time
     // I'm going to assume that entries are added to the list in order of increasing time
-    private Map<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> data = new HashMap<>();
+    private HashMap<AccessPoint, TreeMap<Long, AccessPointDataPoint>> data = new HashMap<>();
 
     @Override
     public void onCreate() {
@@ -54,13 +56,13 @@ public class DataService extends Service {
         wifiManager.startScan();
 
         // Throw an icon in the notification bar so the user knows we're running)
-        Notification notification = new Notification.Builder(this)
+        foregroundNotification = new Notification.Builder(this)
             .setContentTitle("WiFiDroid")
             .setContentText("Scanner currently active")
             .setSmallIcon(R.drawable.recording)
             .build();
 
-        startForeground(1, notification);
+        startForeground(1, foregroundNotification);
     }
 
     @Override
@@ -89,9 +91,9 @@ public class DataService extends Service {
                 AccessPointDataPoint dp = new AccessPointDataPoint(result.level, null);
 
                 if (!data.containsKey(ap))
-                    data.put(ap, new ArrayList<Pair<Long, AccessPointDataPoint>>());
+                    data.put(ap, new TreeMap<Long, AccessPointDataPoint>());
 
-                data.get(ap).add(new Pair<>(updateTime, dp));
+                data.get(ap).put(updateTime, dp);
             }
 
             if (updateDelay > 0) {
@@ -113,17 +115,25 @@ public class DataService extends Service {
      * Returns the time at which the DataService received its first update
      * @return
      */
-    public long getFirstUpdateTimeInMillis() { return updateTimes.get(0); }
+    public long getFirstUpdateTimeInMillis() { return updateTimes.first(); }
 
     /**
      * Returns the time at which the DataService received its last update
      * @return
      */
-    public long getLastUpdateTimeInMillis() { return updateTimes.get(updateTimes.size()-1); }
+    public long getLastUpdateTimeInMillis() { return updateTimes.last(); }
 
-    public List<Long> getUpdateTimesInMillis() { return Collections.unmodifiableList(updateTimes); }
+    /**
+     * Returns the set of times that updates have been observed on
+     * @return
+     */
+    public Set<Long> getUpdateTimesInMillis() { return Collections.unmodifiableSet(updateTimes); }
 
-    public Map<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> getData() { return Collections.unmodifiableMap(data); }
+    /**
+     * Returns the raw dataset that DataService is working with
+     * @return
+     */
+    public Map<AccessPoint, TreeMap<Long, AccessPointDataPoint>> getData() { return Collections.unmodifiableMap(data); }
 
     /**
      * Clears the data buffer and requests an update
@@ -140,13 +150,13 @@ public class DataService extends Service {
      * @param ap
      * @return The data point if it exists, null if it doesn't
      */
-    public Pair<Long, AccessPointDataPoint> getLatestResult(AccessPoint ap) {
-        List<Pair<Long, AccessPointDataPoint>> dpList = data.get(ap);
+    public HashMap.Entry<Long, AccessPointDataPoint> getLatestResult(AccessPoint ap) {
+        TreeMap<Long, AccessPointDataPoint> dpMap = data.get(ap);
 
-        if (dpList == null)
+        if (dpMap == null)
             return null;
 
-        return dpList.get(dpList.size() - 1);
+        return dpMap.lastEntry();
     }
 
     /**
@@ -154,7 +164,7 @@ public class DataService extends Service {
      * @param ap
      * @return the history if it exists, null if we have not observed the given ap
      */
-    public List<Pair<Long, AccessPointDataPoint>> getHistory(AccessPoint ap) {
+    public TreeMap<Long, AccessPointDataPoint> getHistory(AccessPoint ap) {
         return data.get(ap);
     }
 
@@ -162,18 +172,18 @@ public class DataService extends Service {
      * Returns only the entries in the dataset that were seen on the last update
      * @return Always a map, possibly empty
      */
-    public Map<AccessPoint, AccessPointDataPoint> getLatestResults() {
-        Map<AccessPoint, AccessPointDataPoint> map = new HashMap<>();
+    public HashMap<AccessPoint, AccessPointDataPoint> getLatestResults() {
+        HashMap<AccessPoint, AccessPointDataPoint> map = new HashMap<>();
 
         long lastUpdate = getLastUpdateTimeInMillis();
 
         // Really missing C# var about now. Damn you Java! Get with the goddamned program!
         // Hell, I miss LINQ. Functional makes this hella easy!
-        for (Map.Entry<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> entry : data.entrySet()) {
-            Pair<Long, AccessPointDataPoint> dp = entry.getValue().get(entry.getValue().size() - 1);
+        for (HashMap.Entry<AccessPoint, TreeMap<Long, AccessPointDataPoint>> entry : data.entrySet()) {
+            TreeMap.Entry<Long, AccessPointDataPoint> dp = entry.getValue().lastEntry();
 
-            if (dp.first == lastUpdate)
-                map.put(entry.getKey(), dp.second);
+            if (dp.getKey() == lastUpdate)
+                map.put(entry.getKey(), dp.getValue());
         }
 
         return map;
@@ -184,11 +194,11 @@ public class DataService extends Service {
      * of when we last saw them
      * @return Always a map, possibly empty
      */
-    public Map<AccessPoint, Pair<Long, AccessPointDataPoint>> getAggregatedResults() {
-        Map<AccessPoint, Pair<Long, AccessPointDataPoint>> map = new HashMap<>();
+    public HashMap<AccessPoint, TreeMap.Entry<Long, AccessPointDataPoint>> getAggregatedResults() {
+        HashMap<AccessPoint, TreeMap.Entry<Long, AccessPointDataPoint>> map = new HashMap<>();
 
-        for (Map.Entry<AccessPoint, List<Pair<Long, AccessPointDataPoint>>> entry : data.entrySet()) {
-            Pair<Long, AccessPointDataPoint> dp = entry.getValue().get(entry.getValue().size() - 1);
+        for (HashMap.Entry<AccessPoint, TreeMap<Long, AccessPointDataPoint>> entry : data.entrySet()) {
+            TreeMap.Entry<Long, AccessPointDataPoint> dp = entry.getValue().lastEntry();
             map.put(entry.getKey(), dp);
         }
 

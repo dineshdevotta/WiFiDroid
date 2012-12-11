@@ -21,6 +21,8 @@ import rlewelle.wifidroid.data.AccessPoint;
 import rlewelle.wifidroid.data.AccessPointDataPoint;
 
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class WifiMeterActivity extends Activity implements DataService.IDataServicable{
     public static final String EXTRA_AP = "rlewelle.wifidroid.wifimeteractivity.EXTRA_AP";
@@ -81,18 +83,18 @@ public class WifiMeterActivity extends Activity implements DataService.IDataServ
             return;
 
         // Latest result
-        Pair<Long, AccessPointDataPoint> latestDp = serviceLink.getService().getLatestResult(ap);
-        holder.hydrate(ap, latestDp.first, latestDp.second);
+        Map.Entry<Long, AccessPointDataPoint> latestDp = serviceLink.getService().getLatestResult(ap);
+        holder.hydrate(ap, latestDp.getKey(), latestDp.getValue());
 
         // Time-series data
-        List<Pair<Long, AccessPointDataPoint>> data = serviceLink.getService().getHistory(ap);
+        Map<Long, AccessPointDataPoint> data = serviceLink.getService().getHistory(ap);
 
-        XYSeries a = new XYSeries("Signal Strength (dB)");
+        XYSeries a = new XYSeries("Normalized Signal Strength");
         XYSeriesRenderer r = new XYSeriesRenderer();
 
-        long firstTime = data.get(0).first;
-        for (Pair<Long, AccessPointDataPoint> dp : data) {
-            a.add((dp.first - firstTime)/1000.0, 100.0f * dp.second.getNormalizedLevel());
+        long firstTime = serviceLink.getService().getFirstUpdateTimeInMillis();
+        for (Map.Entry<Long, AccessPointDataPoint> dp : data.entrySet()) {
+            a.add((dp.getKey() - firstTime)/1000.0, 100.0f * dp.getValue().getNormalizedLevel());
         }
 
         XYMultipleSeriesDataset dataset = new XYMultipleSeriesDataset();
@@ -100,6 +102,7 @@ public class WifiMeterActivity extends Activity implements DataService.IDataServ
 
         dataset.addSeries(a);
         renderer.addSeriesRenderer(r);
+
         renderer.setYAxisMin(0.0);
         renderer.setYAxisMax(100.0);
 
@@ -108,8 +111,6 @@ public class WifiMeterActivity extends Activity implements DataService.IDataServ
             dataset,
             renderer
         );
-
-
 
         FrameLayout graphHost = (FrameLayout) findViewById(R.id.network_signal_graph_frame);
         graphHost.removeAllViews();

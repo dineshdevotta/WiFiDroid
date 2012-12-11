@@ -135,21 +135,21 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
             return;
 
         // Retrieve and flatten result set into a list for use with the adapter
-        Map<AccessPoint, Pair<Long, AccessPointDataPoint>> results = serviceLink.getService().getAggregatedResults();
+        Map<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> results = serviceLink.getService().getAggregatedResults();
 
         // Flatten the map down to a list suitable for use with an array adapter
-        List<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> data = new ArrayList<>(results.entrySet());
+        List<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> data = new ArrayList<>(results.entrySet());
 
-        Collections.sort(data, new Comparator<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>>() {
+        Collections.sort(data, new Comparator<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>>() {
             @Override
             public int compare(
-                Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>> a,
-                Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>> b) {
+                Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> a,
+                Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> b) {
 
                 // Sort by signal strength (high->low)
                 return WifiManager.compareSignalLevel(
-                    b.getValue().second.getLevel(),
-                    a.getValue().second.getLevel()
+                    b.getValue().getValue().getLevel(),
+                    a.getValue().getValue().getLevel()
                 );
 
                 // Sort by channel (low->high)
@@ -164,14 +164,14 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
         adapter.update(data, serviceLink.getService().getLastUpdateTimeInMillis());
     }
 
-    public class NetworkListAdapter extends ArrayAdapter<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> {
+    public class NetworkListAdapter extends ArrayAdapter<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> {
         private long updateTime;
 
         public NetworkListAdapter() {
             super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid);
         }
 
-        public void update(List<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> data, long updateTime) {
+        public void update(List<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> data, long updateTime) {
             this.updateTime = updateTime;
 
             this.clear();
@@ -192,8 +192,8 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 holder = (NetworkListRowHolder)convertView.getTag();
             }
 
-            Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>> entry = getItem(position);
-            holder.hydrate(entry.getKey(), entry.getValue().first, entry.getValue().second);
+            Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> entry = getItem(position);
+            holder.hydrate(entry.getKey(), entry.getValue().getKey(), entry.getValue().getValue());
 
             return convertView;
         }

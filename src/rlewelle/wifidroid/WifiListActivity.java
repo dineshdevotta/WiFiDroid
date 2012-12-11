@@ -20,11 +20,15 @@ import java.util.*;
 
 public class WifiListActivity extends ListActivity implements DataService.IDataServicable{
     private DataService.DataServiceLink serviceLink = new DataService.DataServiceLink(this);
+    private NetworkListAdapter adapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         serviceLink.onCreate();
+
+        adapter = new NetworkListAdapter();
+        setListAdapter(adapter);
     }
 
     @Override
@@ -152,15 +156,24 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
         });
         */
 
-        setListAdapter(new NetworkListAdapter(data, serviceLink.getService().getLastUpdateTimeInMillis()));
+        //setListAdapter(new NetworkListAdapter(data, serviceLink.getService().getLastUpdateTimeInMillis()));
+        adapter.update(data, serviceLink.getService().getLastUpdateTimeInMillis());
     }
 
     public class NetworkListAdapter extends ArrayAdapter<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> {
         private long updateTime;
 
-        public NetworkListAdapter(List<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> data, long updateTime) {
-            super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid, data);
+        public NetworkListAdapter() {
+            super(WifiListActivity.this, R.layout.wifi_list_row, R.id.network_ssid);
+        }
+
+        public void update(List<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> data, long updateTime) {
             this.updateTime = updateTime;
+
+            this.clear();
+            this.addAll(data);
+
+            this.notifyDataSetChanged();
         }
 
         @Override
@@ -198,9 +211,7 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
                 ssid.setText(ap.getSSID());
 
                 // Highlight access points that we didn't see on latest update
-                if (seenTime < updateTime) {
-                    ssid.setTextColor(Color.RED);
-                }
+                ssid.setTextColor(seenTime < updateTime ? Color.RED : Color.WHITE);
 
                 // Assuming we're talking about a 2.4GHz WiFi source, channels are as follows:
                 // Channel 1 - 2412

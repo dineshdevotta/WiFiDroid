@@ -123,13 +123,13 @@ public class DataService extends Service {
      * Returns the set of times that updates have been observed on
      * @return
      */
-    public Set<Long> getUpdateTimesInMillis() { return Collections.unmodifiableSet(updateTimes); }
+    public TreeSet<Long> getUpdateTimesInMillis() { return updateTimes; }
 
     /**
      * Returns the raw dataset that DataService is working with
      * @return
      */
-    public Map<AccessPoint, TreeMap<Long, AccessPointDataPoint>> getData() { return Collections.unmodifiableMap(data); }
+    public Map<AccessPoint, TreeMap<Long, AccessPointDataPoint>> getData() { return data; }
 
     /**
      * Clears the data buffer and requests an update
@@ -146,7 +146,7 @@ public class DataService extends Service {
      * @param ap
      * @return The data point if it exists, null if it doesn't
      */
-    public HashMap.Entry<Long, AccessPointDataPoint> getLatestResult(AccessPoint ap) {
+    public Map.Entry<Long, AccessPointDataPoint> getLatestResult(AccessPoint ap) {
         TreeMap<Long, AccessPointDataPoint> dpMap = data.get(ap);
 
         if (dpMap == null)
@@ -168,7 +168,7 @@ public class DataService extends Service {
      * Returns only the entries in the dataset that were seen on the last update
      * @return Always a map, possibly empty
      */
-    public HashMap<AccessPoint, AccessPointDataPoint> getLatestResults() {
+    public Map<AccessPoint, AccessPointDataPoint> getLatestResults() {
         HashMap<AccessPoint, AccessPointDataPoint> map = new HashMap<>();
 
         long lastUpdate = getLastUpdateTimeInMillis();
@@ -190,7 +190,7 @@ public class DataService extends Service {
      * of when we last saw them
      * @return Always a map, possibly empty
      */
-    public HashMap<AccessPoint, TreeMap.Entry<Long, AccessPointDataPoint>> getAggregatedResults() {
+    public Map<AccessPoint, TreeMap.Entry<Long, AccessPointDataPoint>> getAggregatedResults() {
         HashMap<AccessPoint, TreeMap.Entry<Long, AccessPointDataPoint>> map = new HashMap<>();
 
         for (HashMap.Entry<AccessPoint, TreeMap<Long, AccessPointDataPoint>> entry : data.entrySet()) {

@@ -13,6 +13,7 @@ import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 import rlewelle.wifidroid.data.AccessPoint;
 import rlewelle.wifidroid.data.AccessPointDataPoint;
+import rlewelle.wifidroid.graphs.GraphFactory;
 
 import java.util.Map;
 
@@ -81,28 +82,7 @@ public class WifiMeterActivity extends Activity implements DataService.IDataServ
         // Time-series data
         Map<Long, AccessPointDataPoint> data = serviceLink.getService().getHistory(ap);
 
-        XYSeries a = new XYSeries("Normalized Signal Strength");
-        XYSeriesRenderer r = new XYSeriesRenderer();
-
-        long firstTime = serviceLink.getService().getFirstUpdateTimeInMillis();
-        for (Map.Entry<Long, AccessPointDataPoint> dp : data.entrySet()) {
-            a.add((dp.getKey() - firstTime) / 1000.0, 100.0f * dp.getValue().getNormalizedLevel());
-        }
-
-        XYMultipleSeriesDataset dataset = new XYMultipleSeriesDataset();
-        XYMultipleSeriesRenderer renderer = new XYMultipleSeriesRenderer();
-
-        dataset.addSeries(a);
-        renderer.addSeriesRenderer(r);
-
-        renderer.setYAxisMin(0.0);
-        renderer.setYAxisMax(100.0);
-
-        GraphicalView graph = ChartFactory.getLineChartView(
-            this,
-            dataset,
-            renderer
-        );
+        GraphicalView graph = GraphFactory.signalStrengthOverTime(this, ap, data, serviceLink.getService().getUpdateTimesInMillis());
 
         FrameLayout graphHost = (FrameLayout) findViewById(R.id.network_signal_graph_frame);
         graphHost.removeAllViews();

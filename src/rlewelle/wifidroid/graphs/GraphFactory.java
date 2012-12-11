@@ -6,6 +6,7 @@ import org.achartengine.GraphicalView;
 import org.achartengine.chart.PointStyle;
 import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;
+import org.achartengine.renderer.SimpleSeriesRenderer;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 import rlewelle.wifidroid.data.AccessPoint;
@@ -35,19 +36,43 @@ public class GraphFactory {
         Map<AccessPoint, Map<Long, AccessPointDataPoint>> data,
         TreeSet<Long> pollTimes
     ) {
-
         XYMultipleSeriesDataset dataSet = new XYMultipleSeriesDataset();
         XYMultipleSeriesRenderer dataRenderer = new XYMultipleSeriesRenderer();
 
         for (Map.Entry<AccessPoint, Map<Long, AccessPointDataPoint>> ap : data.entrySet()) {
-            XYSeries seriesData = new XYSeries(ap.getKey().getSSID());
             XYSeriesRenderer seriesRenderer = new XYSeriesRenderer();
             seriesRenderer.setPointStyle(PointStyle.CIRCLE);
-
-            populateSeriesWithSignalStrengthOverTime(seriesData, ap.getValue(), pollTimes);
-
-            dataSet.addSeries(seriesData);
             dataRenderer.addSeriesRenderer(seriesRenderer);
+
+            XYSeries seriesData = new XYSeries(ap.getKey().getSSID());
+            populateSeriesWithSignalStrengthOverTime(seriesData, ap.getValue(), pollTimes);
+            dataSet.addSeries(seriesData);
+        }
+
+        dataRenderer.setYAxisMin(0.0);
+        dataRenderer.setYAxisMax(100.0);
+
+        return ChartFactory.getLineChartView(
+            context,
+            dataSet,
+            dataRenderer
+        );
+    }
+
+    public static GraphicalView signalChannels(
+        Context context,
+        Map<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> data
+    ) {
+        XYMultipleSeriesDataset dataSet = new XYMultipleSeriesDataset();
+        XYMultipleSeriesRenderer dataRenderer = new XYMultipleSeriesRenderer();
+
+        for (Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> ap : data.entrySet()) {
+            SimpleSeriesRenderer seriesRenderer = new SimpleSeriesRenderer();
+            dataRenderer.addSeriesRenderer(seriesRenderer);
+
+            XYSeries seriesData = new XYSeries(ap.getKey().getSSID());
+            populateSeriesWithChannel(seriesData, ap.getKey(), ap.getValue().getValue());
+            dataSet.addSeries(seriesData);
         }
 
         dataRenderer.setYAxisMin(0.0);
@@ -84,5 +109,13 @@ public class GraphFactory {
                 dp == null ? 0.0 : 100.0f * dp.getNormalizedLevel()
             );
         }
+    }
+
+    public static void populateSeriesWithChannel(
+        XYSeries seriesData,
+        AccessPoint ap,
+        AccessPointDataPoint dp
+    ) {
+        seriesData.add(ap.getChannel(), dp.getNormalizedLevel());
     }
 }

@@ -29,6 +29,37 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
     // This will be false in the case of a configuration change (i.e. rotation)
     private boolean destroyServiceLink = true;
 
+    // Comparator for ordering by signal strength (high -> low)
+    private static final Comparator<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> ORDER_BY_STRENGTH =
+            new Comparator<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>>() {
+
+        @Override
+        public int compare(
+                Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> a,
+                Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> b) {
+
+            return WifiManager.compareSignalLevel(
+                    b.getValue().getValue().getLevel(),
+                    a.getValue().getValue().getLevel()
+            );
+        }
+    };
+
+    // Comparator for ordering by name (low -> high)
+    private static final Comparator<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> ORDER_BY_NAME =
+            new Comparator<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>>() {
+
+        @Override
+        public int compare(
+                Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> a,
+                Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> b) {
+
+            return a.getKey().getSSID().compareTo(b.getKey().getSSID());
+        }
+    };
+
+    private Comparator<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> comparator = ORDER_BY_NAME;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -98,8 +129,9 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.wifi_list_refresh:
-                serviceLink.getService().requestUpdate();
+            case R.id.wifi_list_channels:
+                Intent intent = new Intent(this, WifiChannelsActivity.class);
+                startActivity(intent);
                 break;
 
             case R.id.wifi_list_auto_refresh:
@@ -132,9 +164,23 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
 
                 break;
 
+            case R.id.wifi_list_refresh:
+                serviceLink.getService().requestUpdate();
+                break;
+
+            case R.id.wifi_list_sort_name:
+                comparator = ORDER_BY_NAME;
+                adapter.sort(comparator);
+                break;
+
+            case R.id.wifi_list_sort_strength:
+                comparator = ORDER_BY_STRENGTH;
+                adapter.sort(comparator);
+                break;
+
             case R.id.wifi_list_reset:
                 serviceLink.getService().clearData();
-                setListAdapter(null);
+                adapter.clear();
                 break;
 
             default:
@@ -163,31 +209,12 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
         // Flatten the map down to a list suitable for use with an array adapter
         List<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> data = new ArrayList<>(results.entrySet());
 
-        Collections.sort(data, new Comparator<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>>() {
-            @Override
-            public int compare(
-                Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> a,
-                Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> b) {
-
-                // Sort by signal strength (high->low)
-                return WifiManager.compareSignalLevel(
-                    b.getValue().getValue().getLevel(),
-                    a.getValue().getValue().getLevel()
-                );
-
-                // Sort by channel (low->high)
-                //return ((Integer)a.frequency).compareTo(b.frequency);
-
-                // Sort by name (low->high)
-                //return a.SSID.compareTo(b.SSID);
-            }
-        });
-
-        //setListAdapter(new NetworkListAdapter(data, serviceLink.getService().getLastUpdateTimeInMillis()));
         adapter.update(data, serviceLink.getService().getLastUpdateTimeInMillis());
+        adapter.sort(comparator);
     }
 
     public class NetworkListAdapter extends ArrayAdapter<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> {
+        private List<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> data;
         private long updateTime;
 
         public NetworkListAdapter() {
@@ -197,10 +224,9 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
         public void update(List<Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>>> data, long updateTime) {
             this.updateTime = updateTime;
 
-            this.clear();
-            this.addAll(data);
-
-            this.notifyDataSetChanged();
+            clear();
+            addAll(data);
+            notifyDataSetChanged();
         }
 
         @Override

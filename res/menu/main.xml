@@ -3,20 +3,39 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
+        android:id="@+id/wifi_list_channels"
+        android:title="View Channel Assignments"
+        android:icon="@drawable/ic_menu_gallery"
+        android:showAsAction="always" />
+
+    <item
+        android:id="@+id/wifi_list_auto_refresh"
+        android:title="Auto Refresh"
+        android:icon="@drawable/ic_menu_recent_history"
+        android:showAsAction="always" />
+
+    <item
         android:id="@+id/wifi_list_refresh"
         android:title="Refresh"
         android:icon="@drawable/ic_menu_refresh"
         android:showAsAction="always" />
 
     <item
-        android:id="@+id/wifi_list_reset"
-        android:title="Clear Dataset"
-        android:icon="@drawable/ic_menu_clear_playlist"
-        android:showAsAction="never" />
+        android:id="@+id/wifi_list_sort_name"
+        android:title="Sort by SSID"
+        android:icon="@drawable/ic_menu_sort_alphabetically"
+        android:showAsAction="always" />
 
     <item
-        android:id="@+id/wifi_list_auto_refresh"
-        android:title="Auto Refresh"
+        android:id="@+id/wifi_list_sort_strength"
+        android:title="Sort by Strength"
+        android:icon="@drawable/ic_menu_sort_by_size"
+        android:showAsAction="always" />
+
+    <item
+        android:id="@+id/wifi_list_reset"
+        android:title="Clear Dataset"
+        android:icon="@drawable/ic_menu_delete"
         android:showAsAction="never" />
 
 </menu>

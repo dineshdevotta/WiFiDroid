@@ -54,6 +54,7 @@ public class WifiChannelsActivity extends Activity implements DataService.IDataS
         // Latest result
         Map<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> aggregateData = serviceLink.getService().getAggregatedResults();
 
+
         GraphicalView graph = GraphFactory.signalChannels(this, aggregateData);
 
         FrameLayout graphHost = (FrameLayout) findViewById(R.id.network_channels_graph_frame);

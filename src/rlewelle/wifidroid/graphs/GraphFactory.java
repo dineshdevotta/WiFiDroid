@@ -12,6 +12,7 @@ import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 import rlewelle.wifidroid.data.AccessPoint;
 import rlewelle.wifidroid.data.AccessPointDataPoint;
+import rlewelle.wifidroid.utils.ColorUtilities;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -66,10 +67,13 @@ public class GraphFactory {
     ) {
         XYMultipleSeriesDataset dataSet = new XYMultipleSeriesDataset();
         XYMultipleSeriesRenderer dataRenderer = new XYMultipleSeriesRenderer();
+        dataRenderer.setBarSpacing(0.0);
 
+        int i=0;
         for (Map.Entry<AccessPoint, Map.Entry<Long, AccessPointDataPoint>> ap : data.entrySet()) {
-            SimpleSeriesRenderer seriesRenderer = new SimpleSeriesRenderer();
+            XYSeriesRenderer seriesRenderer = new XYSeriesRenderer();
             dataRenderer.addSeriesRenderer(seriesRenderer);
+            seriesRenderer.setColor(ColorUtilities.getColor(i++));
 
             XYSeries seriesData = new XYSeries(ap.getKey().getSSID());
             populateSeriesWithChannel(seriesData, ap.getKey(), ap.getValue().getValue());
@@ -78,6 +82,13 @@ public class GraphFactory {
 
         dataRenderer.setYAxisMin(0.0);
         dataRenderer.setYAxisMax(100.0);
+        dataRenderer.setXAxisMin(0.0);
+        dataRenderer.setXAxisMax(15.0);
+
+        dataRenderer.setXTitle("Channel");
+
+        for (i=0; i<15; ++i)
+            dataRenderer.addXTextLabel(i, Integer.toString(i));
 
         return ChartFactory.getBarChartView(
             context,

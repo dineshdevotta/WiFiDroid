@@ -205,6 +205,7 @@ public class DataService extends Service {
     public void setUpdateDelay(long delay) {
         // New value of less than 0 indicates we should stop updates
         updateTimer.purge();
+        updateDelay = delay;
         requestUpdate();
     }
 

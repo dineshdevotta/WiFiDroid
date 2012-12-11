@@ -1,5 +1,7 @@
 package rlewelle.wifidroid;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.ListActivity;
 import android.content.*;
 import android.graphics.Color;
@@ -62,6 +64,7 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         new MenuInflater(this).inflate(R.menu.main, menu);
+
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -70,6 +73,36 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
         switch (item.getItemId()) {
             case R.id.wifi_list_refresh:
                 serviceLink.getService().requestUpdate();
+                break;
+
+            case R.id.wifi_list_auto_refresh:
+                final String[] options = new String[] {"0", "200", "500", "1000", "5000", "10000"};
+
+                Dialog dialog = new AlertDialog.Builder(this)
+                    .setTitle("Automatic Update")
+                    //.setMessage("Select the number of milliseconds to wait between updates (or 0 to get them ASAP)")
+                    .setSingleChoiceItems(
+                         options,
+                         -1,
+                         new DialogInterface.OnClickListener() {
+                             @Override
+                             public void onClick(DialogInterface dialogInterface, int which) {
+                                 long delay = Long.parseLong(options[which]);
+                                 WifiListActivity.this.serviceLink.getService().setUpdateDelay(delay);
+                                 dialogInterface.dismiss();
+                             }
+                         }
+                    )
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            dialogInterface.dismiss();
+                        }
+                    })
+                    .create();
+
+                dialog.show();
+
                 break;
 
             case R.id.wifi_list_reset:

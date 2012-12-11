@@ -22,21 +22,41 @@ import rlewelle.wifidroid.data.AccessPointDataPoint;
 import java.util.*;
 
 public class WifiListActivity extends ListActivity implements DataService.IDataServicable{
-    private DataService.DataServiceLink serviceLink = new DataService.DataServiceLink(this);
+    private DataService.DataServiceLink serviceLink;
     private NetworkListAdapter adapter;
+
+    // Indicates whether or not the serviceLink should be destroyed in onDestroy()
+    // This will be false in the case of a configuration change (i.e. rotation)
+    private boolean destroyServiceLink = true;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        serviceLink.onCreate();
+
+        serviceLink = (DataService.DataServiceLink) getLastNonConfigurationInstance();
+
+        if (serviceLink == null) {
+            serviceLink = new DataService.DataServiceLink(this);
+            serviceLink.onCreate();
+        }
 
         adapter = new NetworkListAdapter();
         setListAdapter(adapter);
     }
 
     @Override
+    public Object onRetainNonConfigurationInstance() {
+        super.onRetainNonConfigurationInstance();
+
+        destroyServiceLink = false;
+        return serviceLink;
+    }
+
+    @Override
     protected void onDestroy() {
-        serviceLink.onDestroy();
+        if (destroyServiceLink)
+            serviceLink.onDestroy();
+
         super.onDestroy();
     }
 
@@ -65,7 +85,7 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
 
     @Override
     public Context getContext() {
-        return this;
+        return getApplicationContext();
     }
 
     @Override

@@ -140,21 +140,25 @@ public class WifiListActivity extends ListActivity implements DataService.IDataS
         // Flatten the map down to a list suitable for use with an array adapter
         List<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>> data = new ArrayList<>(results.entrySet());
 
-        /*
-        Collections.sort(scanResults, new Comparator<AccessPoint>() {
+        Collections.sort(data, new Comparator<Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>>>() {
             @Override
-            public int compare(AccessPoint a, AccessPoint b) {
+            public int compare(
+                Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>> a,
+                Map.Entry<AccessPoint, Pair<Long, AccessPointDataPoint>> b) {
+
                 // Sort by signal strength (high->low)
-                //return WifiManager.compareSignalLevel(b.level, a.level);
+                return WifiManager.compareSignalLevel(
+                    b.getValue().second.getLevel(),
+                    a.getValue().second.getLevel()
+                );
 
                 // Sort by channel (low->high)
-                return ((Integer)a.frequency).compareTo(b.frequency);
+                //return ((Integer)a.frequency).compareTo(b.frequency);
 
                 // Sort by name (low->high)
                 //return a.SSID.compareTo(b.SSID);
             }
         });
-        */
 
         //setListAdapter(new NetworkListAdapter(data, serviceLink.getService().getLastUpdateTimeInMillis()));
         adapter.update(data, serviceLink.getService().getLastUpdateTimeInMillis());
